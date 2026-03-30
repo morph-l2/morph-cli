@@ -1,4 +1,6 @@
-# CLAUDE.md — morphcli
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 All-in-one CLI toolchain for Morph L2, designed for AI Agents and developers.
 
@@ -33,6 +35,18 @@ src/
 │       └── identity/         # ERC-8004 Agent identity & reputation
 └── contracts/                # ABI definitions
 ```
+
+## Common Commands
+
+```bash
+pnpm build                         # compile TypeScript → dist/ (CJS via tsup)
+pnpm dev -- <command> [args]       # run directly via tsx (no build needed)
+pnpm test                          # run all tests (vitest)
+pnpm test -- tests/unit/keystore   # run a single test file
+pnpm test -- --coverage            # run with coverage report
+```
+
+Integration tests actually write to `~/.morph-agent/` (real wallet files). Unit tests mock `config.ts` to redirect to a temp dir.
 
 ## Development Guidelines
 
@@ -101,6 +115,39 @@ out(false, { error: msg })  // failure + process.exit(1)
 | SimpleDelegation (7702) | `0x6Dbe92bC5251e205B05151bB72e2977dDd78C1E5` |
 | IdentityRegistry (ERC-8004) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ReputationRegistry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+
+## Architecture Patterns
+
+### Wallet Resolution (dual-path)
+
+All write commands accept either `-w <name>` (private-key) or `--sl <name>` (Social Login). The resolution flow:
+1. `resolveWallet(opts)` in `lib/wallet/resolve.ts` — enforces mutual exclusivity, loads the correct wallet type
+2. Returns a union `WalletData | SocialWalletConfig` — callers pass this directly to `sendTx()`
+
+### Transaction Dispatch (three-mode)
+
+`sendTx()` in `lib/utils/tx-sender.ts` is the single entry point for all on-chain writes. It dispatches based on `TxOptions`:
+- **Standard** (default) — EIP-1559 via viem `walletClient.sendTransaction()`
+- **Alt-fee** (`--altfee <id>`) — custom tx type `0x7f`, RLP-encode + sign locally via `lib/chain/altfee.ts`
+- **EIP-7702** (`--eip7702`) — type `0x04` delegation via `lib/chain/eip7702.ts`
+
+Each mode handles both private-key and Social Login wallets internally.
+
+### Command Layer Convention
+
+Each command file in `src/commands/` exports a factory `<name>Command(): Command` (commander.js). Write commands follow the pattern:
+1. Parse wallet with `resolveWallet(opts)`
+2. Dry-run preview (default) — show what would happen
+3. Execute with `--broadcast` — call `sendTx()` and output result via `out()`
+
+### Data Storage
+
+All local state lives under `~/.morph-agent/`:
+- `wallets/*.json` — AES-256-GCM encrypted private keys
+- `social-wallets/*.json` — encrypted BGW credentials
+- `x402-credentials/*.json` — HMAC merchant credentials
+- `config.json` — default wallet setting
+- `.encryption-key` — 32-byte key file (mode 0600)
 
 ## Adding a New Command
 
