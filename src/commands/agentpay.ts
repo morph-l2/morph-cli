@@ -336,17 +336,17 @@ function x402Command(): Command {
     .option('--price <usdc>', 'Price in USDC (e.g. "0.001")', '0.001')
     .option('--path <path>', 'Paid endpoint path', '/api/resource')
     .option('--free-path <path>', 'Free endpoint path', '/api/free')
-    .option('--verify', 'Enable real Facilitator verification (requires credentials)')
-    .option('-w, --wallet <name>', 'Wallet name to load credentials (for --verify)')
-    .option('--sl <name>', 'Social Login wallet name to load credentials (for --verify)')
+    .option('--dev', 'Dev mode: structural validation only, skip Facilitator verify/settle')
+    .option('-w, --wallet <name>', 'Wallet name to load credentials')
+    .option('--sl <name>', 'Social Login wallet name to load credentials')
     .action(async (opts) => {
       try {
         let creds: { accessKey: string; secretKey: string } | undefined
-        if (opts.verify) {
+        if (!opts.dev) {
           try {
             creds = resolveCreds(opts)
           } catch (e) {
-            out(false, { error: `--verify requires credentials: ${(e as Error).message}` })
+            out(false, { error: `Credentials required (use --dev to skip): ${(e as Error).message}` })
             process.exit(1)
           }
         }

@@ -159,12 +159,12 @@ export function startX402Server(opts: ServerOptions): void {
   })
 
   server.listen(opts.port, () => {
-    const mode = opts.creds ? 'verified (Facilitator)' : 'dev (structural only)'
+    const mode = opts.creds ? 'verified (Facilitator verify + settle)' : 'dev (structural only, no Facilitator)'
     console.log(`\nx402 merchant server listening on http://localhost:${opts.port}`)
     console.log(`  Free:    GET ${opts.freePath}`)
     console.log(`  Paid:    GET ${opts.paidPath}  (requires ${opts.price} USDC)`)
     console.log(`  PayTo:   ${opts.payTo}`)
-    console.log(`  Verify:  ${mode}`)
+    console.log(`  Mode:    ${mode}`)
     console.log(`\nPress Ctrl+C to stop.\n`)
   })
 }
