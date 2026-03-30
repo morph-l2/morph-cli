@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+*.local
+coverage/
+docs/
+
+# Dev/test scripts (internal, may contain test addresses/credentials)
+scripts/
+
+# Skill eval workspaces (internal iteration data)
+skills/**/evals/
+skills/**-workspace/

@@ -1,0 +1,39 @@
+{
+  "name": "morphcli",
+  "version": "0.1.0",
+  "description": "Morph L2 CLI — chain operations for AI agents and developers",
+  "main": "dist/index.js",
+  "bin": {
+    "morph-agent": "dist/index.js"
+  },
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "morph",
+    "l2",
+    "cli",
+    "web3"
+  ],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.27.0",
+  "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "commander": "^14.0.3",
+    "viem": "^2.47.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^4.1.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.1"
+  }
+}
