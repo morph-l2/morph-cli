@@ -233,6 +233,25 @@ All write commands support these additional flags:
 | `--eip7702` | EIP-7702 delegation (tx type 0x04) |
 | `--dry-run` | Preview transaction without sending |
 
+## EIP-7702 Delegation Restriction
+
+**`register()` does NOT work with EIP-7702 delegated wallets.** The IdentityRegistry checks `extcodesize(msg.sender)` and rejects addresses with code. EIP-7702 delegated EOAs have delegation prefix bytecode (`ef0100...`), causing `extcodesize > 0` → revert.
+
+**Workaround**: If the wallet is already delegated, revoke delegation first, then register:
+
+```bash
+# Step 1: Revoke delegation
+morph-agent onchain 7702 revoke -w <wallet>
+
+# Step 2: Register (now pure EOA)
+morph-agent agentpay identity register -w <wallet> --uri "https://..."
+
+# Step 3: Re-delegate if needed
+morph-agent onchain 7702 send -w <wallet> --to <any-address> --value 0
+```
+
+Other write commands (`set-metadata`, `feedback`, etc.) also have this restriction if the contract checks `extcodesize`. Use `--altfee` instead of `--eip7702` for identity write operations.
+
 ## Safety
 
 - **set-wallet requires EIP-712 signature** from the new wallet to prevent malicious binding
