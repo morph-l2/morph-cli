@@ -29,7 +29,7 @@
  *   identity append-response — append response to feedback (tx)
  */
 import { Command } from 'commander'
-import { out } from '../lib/utils/output.js'
+import { out, assertExclusiveWallet } from '../lib/utils/output.js'
 import { resolveWalletName } from '../lib/wallet/keystore.js'
 import { resolveWallet } from '../lib/wallet/resolve.js'
 import { probeX402, payX402, getSupported } from '../lib/agentpay/x402/client.js'
@@ -127,7 +127,7 @@ function x402Command(): Command {
     .requiredOption('--url <url>', 'Target URL')
     .option('--max-payment <usdc>', 'Max payment in USDC (default: 1.0)', '1.0')
     .option('--method <method>', 'HTTP method (default: GET)', 'GET')
-    .option('--broadcast', 'Actually sign and pay')
+    .option('--dry-run', 'Preview payment without signing')
     .action(async (opts) => {
       try {
         const { wallet, address, type } = resolveWallet(opts)
@@ -148,12 +148,12 @@ function x402Command(): Command {
         const amount = req.amount ?? req.maxAmountRequired ?? '0'
         const amountHuman = (Number(amount) / 1e6).toFixed(6)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true, url: opts.url, from: address, payTo: req.payTo,
             amount: amountHuman + ' USDC', amountRaw: amount, network: req.network,
             scheme: req.scheme, maxPayment: opts.maxPayment + ' USDC',
-            note: 'Add --broadcast to sign EIP-3009 and pay',
+            note: 'Add --dry-run to preview without signing',
           })
           return
         }
@@ -305,9 +305,28 @@ function x402Command(): Command {
       try {
         const { wallet, name, address, type } = resolveWallet(opts)
 
+        // Check if credentials already saved locally — use live wallet address, not saved address
+        const saved = loadCredentials(name)
+        if (saved && saved.secretKey.startsWith('morph_sk_')) {
+          const sk = saved.secretKey
+          const masked = sk.length > 16
+            ? sk.slice(0, 12) + '...' + sk.slice(-4)
+            : '***'
+          out(true, {
+            walletName: name,
+            walletType: type,
+            address,
+            accessKey: saved.accessKey,
+            secretKey: masked,
+            note: 'Credentials already saved locally. Use "x402 config -w ' + name + ' --show" to view.',
+          })
+          return
+        }
+
         const result = await registerMerchant(wallet)
 
-        if (opts.save && result.accessKey && result.secretKey) {
+        const hasRealSecret = result.secretKey && result.secretKey.startsWith('morph_sk_')
+        if (opts.save && result.accessKey && hasRealSecret) {
           saveCredentials(name, result.address, result.accessKey, result.secretKey)
         }
 
@@ -316,12 +335,16 @@ function x402Command(): Command {
           walletType: type,
           address: result.address,
           accessKey: result.accessKey,
-          secretKey: result.secretKey || '(not available — already registered, secret only shown once)',
+          secretKey: hasRealSecret ? result.secretKey : '(not available — already registered, secret only shown once)',
           isNew: result.isNew,
-          saved: opts.save ? true : undefined,
+          saved: opts.save
+            ? (hasRealSecret ? true : false)
+            : undefined,
           note: result.isNew
             ? 'Credentials created! Secret Key is only shown once. Use --save to encrypt and store locally.'
-            : 'Key already exists. Secret Key may not be available again.',
+            : hasRealSecret
+              ? 'Key already exists but Secret Key was retrieved.'
+              : 'Key already exists. Secret Key not available — use "x402 config" to set manually if you have it.',
         })
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
@@ -449,7 +472,7 @@ function identityCommand(): Command {
       .option('-w, --wallet <name>', 'Private-key wallet name (default: default wallet)')
       .option('--sl <name>', 'Social Login wallet name')
       .option('--uri <uri>', 'Agent URI (metadata URL)')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(registerCmd)
     registerCmd.action(async (opts) => {
@@ -459,12 +482,12 @@ function identityCommand(): Command {
         const calldata = encodeRegister(opts.uri)
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             uri: opts.uri ?? '(none)', calldataLength: calldata.length,
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send registration tx',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }
@@ -504,7 +527,7 @@ function identityCommand(): Command {
       .requiredOption('--agent-id <id>', 'Agent ID')
       .requiredOption('--key <key>', 'Metadata key (e.g. "name", "description", "endpoint")')
       .requiredOption('--value <value>', 'Metadata value')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(setMetaCmd)
     setMetaCmd.action(async (opts) => {
@@ -514,12 +537,12 @@ function identityCommand(): Command {
         const calldata = encodeSetMetadata(parseInt(opts.agentId), opts.key, opts.value)
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             agentId: opts.agentId, key: opts.key, value: opts.value,
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send transaction',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }
@@ -540,7 +563,7 @@ function identityCommand(): Command {
       .option('--sl <name>', 'Social Login wallet name')
       .requiredOption('--agent-id <id>', 'Agent ID')
       .requiredOption('--uri <uri>', 'New agent URI')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(setUriCmd)
     setUriCmd.action(async (opts) => {
@@ -550,12 +573,12 @@ function identityCommand(): Command {
         const calldata = encodeSetAgentURI(parseInt(opts.agentId), opts.uri)
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             agentId: opts.agentId, uri: opts.uri,
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send transaction',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }
@@ -578,7 +601,7 @@ function identityCommand(): Command {
       .requiredOption('--new-wallet <address>', 'New wallet address to bind')
       .requiredOption('--signature <hex>', 'EIP-712 signature from newWallet (0x...)')
       .option('--deadline <timestamp>', 'Signature deadline (unix timestamp)', String(Math.floor(Date.now() / 1000) + 3600))
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(setWalletCmd)
     setWalletCmd.action(async (opts) => {
@@ -589,12 +612,12 @@ function identityCommand(): Command {
         const calldata = encodeSetAgentWallet(parseInt(opts.agentId), opts.newWallet, deadline, opts.signature as `0x${string}`)
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             agentId: opts.agentId, newWallet: opts.newWallet, deadline: opts.deadline,
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send transaction',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }
@@ -614,7 +637,7 @@ function identityCommand(): Command {
       .option('-w, --wallet <name>', 'Private-key wallet name (agent owner, default: default wallet)')
       .option('--sl <name>', 'Social Login wallet name (agent owner)')
       .requiredOption('--agent-id <id>', 'Agent ID')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(unsetWalletCmd)
     unsetWalletCmd.action(async (opts) => {
@@ -624,12 +647,12 @@ function identityCommand(): Command {
         const calldata = encodeUnsetAgentWallet(parseInt(opts.agentId))
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             agentId: opts.agentId, action: 'unset wallet',
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send transaction',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }
@@ -654,7 +677,7 @@ function identityCommand(): Command {
       .option('--tag2 <tag>', 'Tag 2 (sub-category)', '')
       .option('--endpoint <url>', 'Endpoint being rated', '')
       .option('--feedback-uri <uri>', 'Off-chain feedback URI', '')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(feedbackCmd)
     feedbackCmd.action(async (opts) => {
@@ -667,12 +690,12 @@ function identityCommand(): Command {
         )
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true, from: address, to: REPUTATION_REGISTRY,
             agentId: opts.agentId, value: opts.value, tag1: opts.tag1, tag2: opts.tag2,
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send transaction',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }
@@ -728,7 +751,7 @@ function identityCommand(): Command {
       .option('--sl <name>', 'Social Login wallet name')
       .requiredOption('--agent-id <id>', 'Agent ID')
       .requiredOption('--index <n>', 'Feedback index to revoke')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(revokeCmd)
     revokeCmd.action(async (opts) => {
@@ -738,12 +761,12 @@ function identityCommand(): Command {
         const calldata = encodeRevokeFeedback(parseInt(opts.agentId), parseInt(opts.index))
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true, from: address, to: REPUTATION_REGISTRY,
             agentId: opts.agentId, feedbackIndex: opts.index,
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send revoke transaction',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }
@@ -766,7 +789,7 @@ function identityCommand(): Command {
       .requiredOption('--client <address>', 'Client address who gave feedback')
       .requiredOption('--index <n>', 'Feedback index')
       .requiredOption('--response-uri <uri>', 'Response URI')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(appendCmd)
     appendCmd.action(async (opts) => {
@@ -778,13 +801,13 @@ function identityCommand(): Command {
         )
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true, from: address, to: REPUTATION_REGISTRY,
             agentId: opts.agentId, client: opts.client, feedbackIndex: opts.index,
             responseUri: opts.responseUri,
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send transaction',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }

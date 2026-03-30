@@ -45,13 +45,13 @@ function swapCommand(): Command {
   {
     const sendCmd = cmd
       .command('send')
-      .description('Execute a swap using calldata from "swap quote". Dry-run by default.')
+      .description('Execute a swap using calldata from "swap quote". Broadcasts by default.')
       .option('-w, --wallet <name>', 'Sender wallet name (default: default wallet)')
       .option('--sl <name>', 'Social Login wallet name')
       .requiredOption('--to <address>', 'Router address (from methodParameters.to)')
       .option('--value <eth>', 'ETH value in ETH (from methodParameters.value, default: 0)', '0')
       .requiredOption('--data <hex>', 'Calldata hex (from methodParameters.calldata)')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(sendCmd)
     sendCmd.action(async (opts) => {
@@ -60,7 +60,7 @@ function swapCommand(): Command {
         const value = parseEther(opts.value ?? '0')
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true,
             from: wallet.address,
@@ -68,7 +68,7 @@ function swapCommand(): Command {
             value: opts.value ?? '0',
             dataLength: (opts.data as string).length,
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }
@@ -86,13 +86,13 @@ function swapCommand(): Command {
   {
     const approveCmd = cmd
       .command('approve')
-      .description('Approve router to spend ERC-20 token before swapping. Dry-run by default.')
+      .description('Approve router to spend ERC-20 token before swapping. Broadcasts by default.')
       .option('-w, --wallet <name>', 'Wallet name (default: default wallet)')
       .option('--sl <name>', 'Social Login wallet name')
       .requiredOption('--token <symbol_or_address>', 'Token to approve (e.g. USDC)')
       .option('--spender <address>', 'Router/spender address (default: Bulbaswap universalRouter)')
       .requiredOption('--amount <value>', 'Allowance amount (human-readable, or "max")')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(approveCmd)
     approveCmd.action(async (opts) => {
@@ -107,7 +107,7 @@ function swapCommand(): Command {
           : parseUnits(opts.amount, token.decimals)
         const txMode = parseTxModeOptions(opts)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true,
             from: wallet.address,
@@ -116,7 +116,7 @@ function swapCommand(): Command {
             spender,
             amount: opts.amount === 'max' ? 'max' : formatUnits(amount, token.decimals),
             txMode: txModeLabel(txMode),
-            note: 'Add --broadcast to send',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }

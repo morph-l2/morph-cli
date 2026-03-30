@@ -53,7 +53,7 @@ async function login(address: string, signature: string, nonce: string): Promise
 
 // ─── Step 4: Create API key ─────────────────────────────────────────────────
 
-async function createApiKey(token: string): Promise<{ accessKey: string; secretKey: string }> {
+async function createApiKey(token: string): Promise<{ accessKey: string; secretKey: string; isNew: boolean }> {
   const res = await fetch(`${RAILS_BASE}/api-keys/create`, {
     method: 'POST',
     headers: {
@@ -64,15 +64,15 @@ async function createApiKey(token: string): Promise<{ accessKey: string; secretK
   })
   const json = await res.json() as RailsResponse<{ accessKey: string; secretKey: string }>
 
-  // code 40005 = key already exists, fetch existing
+  // code 40005 = key already exists — detail endpoint won't return secretKey (shown once only)
   if (json.code === 40005) {
     const existing = await getApiKeyDetail(token)
-    if (existing) return existing
+    if (existing) return { ...existing, isNew: false }
     throw new Error('Key exists but failed to fetch details')
   }
 
   if (json.code !== 0) throw new Error(json.message || 'Failed to create API key')
-  return json.data
+  return { ...json.data, isNew: true }
 }
 
 // ─── Step 5: Get existing key ───────────────────────────────────────────────
@@ -132,13 +132,8 @@ export async function registerMerchant(wallet: WalletData | SocialWalletConfig):
   // Step 3: Login
   const token = await login(address, signature, nonce)
 
-  // Step 4: Try to get existing key first
-  const existing = await getApiKeyDetail(token)
-  if (existing && existing.accessKey) {
-    return { ...existing, address, isNew: false }
-  }
-
-  // Step 5: Create new key
-  const created = await createApiKey(token)
-  return { ...created, address, isNew: true }
+  // Step 4: Create key (returns secretKey on first creation)
+  // If key already exists (40005), createApiKey falls back to detail — secretKey will be empty
+  const result = await createApiKey(token)
+  return { accessKey: result.accessKey, secretKey: result.secretKey, address, isNew: result.isNew }
 }

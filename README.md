@@ -35,7 +35,7 @@ morph-agent
   │     ├── address      Get address
   │     ├── remove       Delete wallet
   │     ├── balance      Query balance (ETH + BGB + USDC + USDT)
-  │     ├── transfer     Transfer ETH/ERC-20 (dry-run by default)
+  │     ├── transfer     Transfer ETH/ERC-20 (broadcasts by default)
   │     ├── default      Set/view default wallet
   │     ├── sl           Bind Social Login wallet (Bitget TEE)
   │     ├── sl-list      List Social Login wallets
@@ -51,7 +51,7 @@ morph-agent
   │     └── 7702         EIP-7702 delegation + batch call (tx type 0x04)
   │           ├── delegate    Check EOA delegation status
   │           ├── authorize   Sign authorization (no tx sent, PK only)
-  │           ├── send        Send single 7702 call (dry-run by default)
+  │           ├── send        Send single 7702 call (broadcasts by default)
   │           ├── batch       Atomic batch call via SimpleDelegation
   │           └── revoke      Revoke delegation
   │
@@ -157,7 +157,7 @@ Both types support all transaction modes: standard EIP-1559, `--altfee` (0x7f), 
 - Private keys AES-256-GCM encrypted, stored at `~/.morph-agent/wallets/`
 - SL wallet credentials (appid/appsecret) also AES-256-GCM encrypted
 - Encryption master key auto-generated at `~/.morph-agent/.encryption-key`
-- All write transactions default to dry-run; `--broadcast` required to confirm
+- All write transactions broadcast by default; use `--dry-run` to preview first
 - Private keys used for local signing only, never sent to any API
 - Merchant Secret Key also AES-256-GCM encrypted storage
 

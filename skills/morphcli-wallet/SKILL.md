@@ -11,7 +11,7 @@ Local key management and on-chain operations via `morph-agent wallet`.
 
 - Private keys encrypted with **AES-256-GCM** at `~/.morph-agent/wallets/<name>.json`
 - **Text output** by default; add `--json` for structured JSON (recommended for AI agents)
-- Transfers are **dry-run by default** — add `--broadcast` to actually send
+- Transfers **broadcast by default** — add `--dry-run` to preview first
 - Amounts use human-readable units (`0.1` = 0.1 ETH, not wei)
 - Add `--hoodi` to switch to Morph Hoodi testnet (chain ID 2910)
 
@@ -86,23 +86,23 @@ USDT     0.1
 ### Transfer
 
 ```bash
-# ETH dry-run (default)
-morph-agent wallet transfer --to 0x<addr> --amount 0.1
+# ETH transfer
+morph-agent wallet transfer -w main --to 0x<addr> --amount 0.1
 
-# ETH broadcast
-morph-agent wallet transfer -w main --to 0x<addr> --amount 0.1 --broadcast
+# Preview first (dry-run)
+morph-agent wallet transfer --to 0x<addr> --amount 0.1 --dry-run
 
 # SL wallet — ERC-20 transfer
-morph-agent wallet transfer --sl bgw --to 0x<addr> --amount 50 --token USDC --broadcast
+morph-agent wallet transfer --sl bgw --to 0x<addr> --amount 50 --token USDC
 
 # Pay gas with BGB (alt-fee, tx type 0x7f)
-morph-agent wallet transfer --to 0x<addr> --amount 0.1 --altfee 4 --broadcast
+morph-agent wallet transfer --to 0x<addr> --amount 0.1 --altfee 4
 
 # Send via EIP-7702 delegation (tx type 0x04)
-morph-agent wallet transfer --to 0x<addr> --amount 0.1 --eip7702 --broadcast
+morph-agent wallet transfer --to 0x<addr> --amount 0.1 --eip7702
 
 # Testnet
-morph-agent wallet transfer --to 0x<addr> --amount 1 --hoodi --broadcast
+morph-agent wallet transfer --to 0x<addr> --amount 1 --hoodi
 ```
 
 ### Transaction Mode Options (all write commands)
@@ -131,7 +131,7 @@ morph-agent wallet transfer --to 0x<addr> --amount 1 --hoodi --broadcast
 
 ## Safety
 
-- **Always confirm with user before `--broadcast`** — transfers are irreversible
+- **Always confirm with user before executing transfers** — they are irreversible
 - Never expose private keys in output
-- Suggest dry-run first for large amounts
+- Use `--dry-run` to preview large transfers before sending
 - SL wallet credentials are AES-256-GCM encrypted before storage

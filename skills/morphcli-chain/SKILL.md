@@ -68,7 +68,7 @@ morph-agent onchain altfee estimate --id 6 [--gas-limit 21000] # Estimate fee
 
 Add `--altfee <id>` to any write command to use alt-fee:
 ```bash
-morph-agent wallet transfer --to 0x... --amount 0.1 --altfee 5 --broadcast
+morph-agent wallet transfer --to 0x... --amount 0.1 --altfee 5
 ```
 
 ## Network Info
@@ -88,7 +88,7 @@ Output shows `isDelegated: true/false` and `delegateContract` address (e.g., Sim
 
 To **use** EIP-7702 delegation in write commands, add `--eip7702`:
 ```bash
-morph-agent wallet transfer -w <wallet> --to 0x<addr> --amount 0.1 --eip7702 --broadcast
+morph-agent wallet transfer -w <wallet> --to 0x<addr> --amount 0.1 --eip7702
 ```
 
 Both PK and SL wallets support `--eip7702`. SL wallets sign EIP-7702 authorization via BGW `EthSign:{hash}`.

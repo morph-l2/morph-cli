@@ -8,7 +8,7 @@ description: "x402 HTTP payment protocol for AI agents via morphcli — discover
 HTTP 402 payment workflow for AI agents and merchants via `morph-agent agentpay x402`.
 
 - Payments use **EIP-3009 off-chain signatures** — no gas consumed
-- `pay` is **dry-run by default** — add `--broadcast` to sign and pay
+- `pay` **broadcasts by default** — add `--dry-run` to preview first
 - Facilitator: `https://morph-rails.morph.network/x402`
 - Payment network: Morph Mainnet (eip155:2818)
 - Payment token: USDC `0xCfb1186F4e93D60E60a8bDd997427D1F33bc372B`
@@ -24,11 +24,14 @@ morph-agent agentpay x402 supported
 # Probe a URL for 402 requirements
 morph-agent agentpay x402 discover --url <url>
 
-# Pay for a resource (dry-run)
+# Pay for a resource
 morph-agent agentpay x402 pay -w <wallet> --url <url>
 
-# Pay for a resource (broadcast)
-morph-agent agentpay x402 pay -w <wallet> --url <url> --max-payment 1.0 --broadcast
+# Pay with max payment limit
+morph-agent agentpay x402 pay -w <wallet> --url <url> --max-payment 1.0
+
+# Preview payment without sending
+morph-agent agentpay x402 pay -w <wallet> --url <url> --dry-run
 ```
 
 ## Merchant-Side Commands
@@ -81,8 +84,8 @@ morph-agent agentpay x402 server --pay-to 0x<addr> --price 0.005 --path /api/dat
 
 ```bash
 morph-agent agentpay x402 discover --url https://api.example.com/resource
-morph-agent agentpay x402 pay -w main --url https://api.example.com/resource
-morph-agent agentpay x402 pay -w main --url https://api.example.com/resource --broadcast
+morph-agent agentpay x402 pay -w main --url https://api.example.com/resource --dry-run   # preview
+morph-agent agentpay x402 pay -w main --url https://api.example.com/resource              # execute
 ```
 
 ### Merchant: Register + Run Server
@@ -99,3 +102,7 @@ morph-agent agentpay x402 server -w merchant --verify --price 0.001
 3. Sign EIP-3009 `transferWithAuthorization` (off-chain, no gas)
 4. Resend with `X-PAYMENT` header
 5. Server verifies → Facilitator settles USDC → returns resource
+
+## EIP-7702 + ERC-1271 Compatibility
+
+SimpleDelegation (`0xBD7093Ded667289F9808Fa0C678F81dbB4d2eEb7`) implements ERC-1271 `isValidSignature()`, allowing EIP-7702 delegated EOAs to pass USDC FiatTokenV2.2 signature verification during x402 settlement.

@@ -1,7 +1,7 @@
 /**
  * EIP-7702 — EOA delegate authorization + batch call on Morph L2
  *
- * Default delegate: SimpleDelegation at 0x6Dbe92bC5251e205B05151bB72e2977dDd78C1E5
+ * Default delegate: SimpleDelegation at 0xBD7093Ded667289F9808Fa0C678F81dbB4d2eEb7 (ERC-1271 compatible)
  * Contract interface:
  *   execute(Call[] calls, uint256 nonce, bytes signature) — batch execute with sig verification
  *   getDigest(Call[] calls, uint256 nonce) → bytes32     — EIP-191 digest for signing
@@ -17,7 +17,7 @@ import { extractSigFields } from './altfee.js'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-export const DEFAULT_DELEGATE = '0x6Dbe92bC5251e205B05151bB72e2977dDd78C1E5' as const
+export const DEFAULT_DELEGATE = '0xBD7093Ded667289F9808Fa0C678F81dbB4d2eEb7' as const
 
 // EIP-7702 delegation prefix: 0xef0100 + 20-byte address
 const DELEGATION_PREFIX = '0xef0100'
@@ -269,7 +269,7 @@ function computeDataHash(
 export interface Batch7702Options {
   delegate?: string
   testnet?: boolean
-  broadcast?: boolean
+  dryRun?: boolean
 }
 
 export interface Batch7702Result {
@@ -356,7 +356,7 @@ export async function batch7702(
       ],
     })
 
-    if (!opts.broadcast) {
+    if (opts.dryRun) {
       return { dryRun: true, from: address, delegate, callCount: calls.length, delegationNonce: delegationNonce.toString(), calls: callsSummary }
     }
 
@@ -428,7 +428,7 @@ export async function batch7702(
     ],
   })
 
-  if (!opts.broadcast) {
+  if (opts.dryRun) {
     return {
       dryRun: true,
       from: account.address,
@@ -496,7 +496,7 @@ export interface Revoke7702Result {
 /** Revoke 7702 delegation by setting delegate to address(0) */
 export async function revoke7702(
   wallet: WalletData | SocialWalletConfig,
-  opts: { testnet?: boolean; broadcast?: boolean } = {},
+  opts: { testnet?: boolean; dryRun?: boolean } = {},
 ): Promise<Revoke7702Result> {
   const testnet = opts.testnet ?? false
   const chain = testnet ? morphTestnet : morphMainnet
@@ -507,7 +507,7 @@ export async function revoke7702(
     const creds = decryptCredentials(wallet)
     const address = wallet.address as `0x${string}`
 
-    if (!opts.broadcast) {
+    if (opts.dryRun) {
       return { dryRun: true, from: address, note: 'Will revoke delegation via SL wallet (EthSign)' }
     }
 
@@ -538,7 +538,7 @@ export async function revoke7702(
   const privateKey = decrypt(wallet.privateKey) as `0x${string}`
   const account = privateKeyToAccount(privateKey)
 
-  if (!opts.broadcast) {
+  if (opts.dryRun) {
     return { dryRun: true, from: account.address, note: 'Will sign authorization with delegate = address(0) to clear delegation code' }
   }
 

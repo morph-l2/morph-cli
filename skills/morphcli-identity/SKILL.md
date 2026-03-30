@@ -8,7 +8,7 @@ description: "ERC-8004 agent identity and reputation on Morph L2 via morphcli �
 On-chain agent identity (NFT) and reputation via `morph-agent agentpay identity`.
 
 - **Text output** by default; add `--json`
-- Write commands are **dry-run by default** — add `--broadcast`
+- Write commands **broadcast by default** — add `--dry-run` to preview
 - Add `--hoodi` for Morph Hoodi testnet (chain ID 2910)
 - `-w` for private-key wallet, `--sl` for Social Login wallet
 
@@ -33,36 +33,36 @@ morph-agent agentpay identity read-feedback --agent-id <id> --client <addr> --in
 morph-agent agentpay identity reviews --agent-id <id> [--include-revoked]           # All feedback
 ```
 
-## Identity Management (dry-run by default)
+## Identity Management (broadcasts by default)
 
 ```bash
 # Register new Agent (mints NFT)
-morph-agent agentpay identity register [-w <wallet>] [--uri <url>] [--broadcast]
+morph-agent agentpay identity register [-w <wallet>] [--uri <url>] [--dry-run]
 
 # Set metadata
-morph-agent agentpay identity set-metadata [-w <wallet>] --agent-id <id> --key <key> --value <value> [--broadcast]
+morph-agent agentpay identity set-metadata [-w <wallet>] --agent-id <id> --key <key> --value <value> [--dry-run]
 
 # Set Agent URI
-morph-agent agentpay identity set-uri [-w <wallet>] --agent-id <id> --uri <uri> [--broadcast]
+morph-agent agentpay identity set-uri [-w <wallet>] --agent-id <id> --uri <uri> [--dry-run]
 
 # Bind operational wallet (requires EIP-712 signature from new wallet)
-morph-agent agentpay identity set-wallet [-w <wallet>] --agent-id <id> --new-wallet <addr> --signature <hex> [--broadcast]
+morph-agent agentpay identity set-wallet [-w <wallet>] --agent-id <id> --new-wallet <addr> --signature <hex> [--dry-run]
 
 # Unbind operational wallet
-morph-agent agentpay identity unset-wallet [-w <wallet>] --agent-id <id> [--broadcast]
+morph-agent agentpay identity unset-wallet [-w <wallet>] --agent-id <id> [--dry-run]
 ```
 
-## Reputation Operations (dry-run by default)
+## Reputation Operations (broadcasts by default)
 
 ```bash
 # Submit feedback
-morph-agent agentpay identity feedback [-w <wallet>] --agent-id <id> --value <n> [--tag1 <tag>] [--tag2 <tag>] [--broadcast]
+morph-agent agentpay identity feedback [-w <wallet>] --agent-id <id> --value <n> [--tag1 <tag>] [--tag2 <tag>] [--dry-run]
 
 # Revoke feedback (index starts from 1)
-morph-agent agentpay identity revoke-feedback [-w <wallet>] --agent-id <id> --index <n> [--broadcast]
+morph-agent agentpay identity revoke-feedback [-w <wallet>] --agent-id <id> --index <n> [--dry-run]
 
 # Append response to feedback
-morph-agent agentpay identity append-response [-w <wallet>] --agent-id <id> --client <addr> --index <n> --response-uri <uri> [--broadcast]
+morph-agent agentpay identity append-response [-w <wallet>] --agent-id <id> --client <addr> --index <n> --response-uri <uri> [--dry-run]
 ```
 
 ## Typical Workflows
@@ -70,16 +70,12 @@ morph-agent agentpay identity append-response [-w <wallet>] --agent-id <id> --cl
 ### Register Agent + Set Metadata
 
 ```bash
-morph-agent agentpay identity register -w owner --uri "https://example.com/agent.json" --broadcast
-morph-agent agentpay identity set-metadata -w owner --agent-id 1 --key name --value "MyAgent" --broadcast
-morph-agent agentpay identity set-metadata -w owner --agent-id 1 --key endpoint --value "https://api.myagent.com" --broadcast
-```
+morph-agent agentpay identity register -w owner --uri "https://example.com/agent.json"morph-agent agentpay identity set-metadata -w owner --agent-id 1 --key name --value "MyAgent"morph-agent agentpay identity set-metadata -w owner --agent-id 1 --key endpoint --value "https://api.myagent.com"```
 
 ### Feedback Cycle
 
 ```bash
-morph-agent agentpay identity feedback -w user --agent-id 1 --value 100 --tag1 quality --broadcast
-morph-agent agentpay identity reviews --agent-id 1
+morph-agent agentpay identity feedback -w user --agent-id 1 --value 100 --tag1 qualitymorph-agent agentpay identity reviews --agent-id 1
 morph-agent agentpay identity reputation --agent-id 1
 ```
 
@@ -94,4 +90,4 @@ morph-agent agentpay identity reputation --agent-id 1
 
 - **set-wallet requires EIP-712 signature** from the new wallet to prevent malicious binding
 - Feedback is permanently recorded on-chain (revoke marks it but doesn't delete)
-- Confirm with user before `--broadcast`
+- Confirm with user before executing write operations (use `--dry-run` to preview)

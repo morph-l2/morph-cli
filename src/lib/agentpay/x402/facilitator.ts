@@ -122,13 +122,18 @@ async function facilitatorRequest<T>(
     signal: AbortSignal.timeout(30000),
   })
 
-  const data = await res.json()
+  let data: unknown
+  const text = await res.text()
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error(`Facilitator HTTP ${res.status}: ${text.slice(0, 200)}`)
+  }
 
   if (!res.ok) {
-    const reason = (data as Record<string, unknown>)['invalidReason']
-      ?? (data as Record<string, unknown>)['errorReason']
-      ?? `HTTP ${res.status}`
-    throw new Error(`Facilitator error: ${reason}`)
+    const d = data as Record<string, unknown>
+    const reason = d['invalidReason'] ?? d['errorReason'] ?? d['message'] ?? d['error'] ?? JSON.stringify(d)
+    throw new Error(`Facilitator HTTP ${res.status}: ${reason}`)
   }
 
   return data as T

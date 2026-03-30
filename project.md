@@ -84,11 +84,13 @@
 |------------|-------------|
 | `delegate` | Check EOA delegation status (isDelegated, delegateContract) |
 | `authorize` | Sign authorization only, no tx sent (PK wallet only) |
-| `send` | Send single call via 7702 delegation (`-w`/`--sl`, dry-run by default) |
-| `batch` | Atomic batch call via SimpleDelegation (`-w`/`--sl`, dry-run by default) |
-| `revoke` | Revoke delegation, set delegate to address(0) (`-w`/`--sl`, dry-run by default) |
+| `send` | Send single call via 7702 delegation (`-w`/`--sl`, broadcasts by default) |
+| `batch` | Atomic batch call via SimpleDelegation (`-w`/`--sl`, broadcasts by default) |
+| `revoke` | Revoke delegation, set delegate to address(0) (`-w`/`--sl`, broadcasts by default) |
 
 > `--eip7702` flag is also available on all write commands (wallet transfer, eco swap, agentpay identity, etc.) as a shortcut for single-call 7702 sends.
+
+> **ERC-1271 Compatible**: SimpleDelegation (`0xBD7093Ded667289F9808Fa0C678F81dbB4d2eEb7`) implements `isValidSignature()`, allowing EIP-7702 delegated EOAs to pass USDC FiatTokenV2.2 ERC-1271 signature verification.
 
 ### 3. eco (L3) — DeFi Ecosystem
 
@@ -155,7 +157,7 @@
 - **Social Login Wallet**: Bitget TEE-hosted private keys; agent only needs appid/appsecret credentials to call the signing API (bind with `wallet sl`)
 - **Dual Wallet Types**: All write commands auto-detect wallet type via `-n` name (checks private-key wallet first, then Social Login)
 - **Default Wallet**: First wallet created is automatically set as default
-- **Dry-run Mode**: All write operations default to dry-run; use `--broadcast` to actually send
+- **Dry-run Mode**: All write operations broadcast by default; use `--dry-run` to preview first
 - **Output Format**: Default text output; use `--json` to switch to JSON
 - **Testnet Support**: `--hoodi` switches to Morph Hoodi testnet
 - **Unified Transaction Modes**: All write commands (transfer, swap, approve, register, feedback, etc.) support:
@@ -212,7 +214,7 @@ src/
 |----------|---------|-------------|
 | IdentityRegistry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | ERC-8004 identity registry (v2.0.0) |
 | ReputationRegistry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` | Reputation registry |
-| SimpleDelegation | `0x6Dbe92bC5251e205B05151bB72e2977dDd78C1E5` | EIP-7702 delegation contract |
+| SimpleDelegation | `0xBD7093Ded667289F9808Fa0C678F81dbB4d2eEb7` | EIP-7702 delegation contract (ERC-1271) |
 | TokenRegistry | `0x5300000000000000000000000000000000000021` | Alt-fee token registry |
 
 ## Network Info
@@ -264,4 +266,4 @@ pnpm test:watch
 - All send/transfer/swap/bridge operations require user intent confirmation before execution
 - Private keys are used for local signing only and never sent to any external API
 - Amounts use human-readable units (`0.1` = 0.1 ETH, not wei)
-- Write operations default to dry-run; explicit `--broadcast` required to execute
+- Write operations broadcast by default; use `--dry-run` to preview before sending

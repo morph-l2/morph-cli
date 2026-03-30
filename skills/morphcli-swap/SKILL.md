@@ -8,7 +8,7 @@ description: "DEX swap on Morph L2 via morphcli — quote token prices from Bulb
 Token swaps through the Bulbaswap DEX aggregator via `morph-agent eco swap`.
 
 - **Text output** by default; add `--json` for structured JSON
-- `send` and `approve` are **dry-run by default** — add `--broadcast` to execute
+- `send` and `approve` **broadcast by default** — add `--dry-run` to preview first
 - `-w <name>` for private-key wallet, `--sl <name>` for Social Login wallet
 - All swap commands support `--altfee <id>` and `--eip7702` modes
 
@@ -43,26 +43,35 @@ morph-agent eco swap quote --amount 0.001 --from ETH --to USDC --recipient 0x<yo
 {
   "quoteDecimals": "1.234567",
   "methodParameters": {
-    "to": "0x<router>",
-    "calldata": "0x<hex>",
-    "value": "0x38D7EA4C68000"
+    "to": "0xc0Ce9a...  (router address)",
+    "calldata": "0xd984396a...  (hex encoded)",
+    "value": "0.001  (ETH in decimal, pass directly to --value)"
   }
 }
 ```
 
 ### 2. Execute Swap
 
+Pass the three `methodParameters` fields directly from the quote output:
+
 ```bash
-morph-agent eco swap send -w <wallet> --to 0x<router> --value 0.001 --data 0x<calldata> --broadcast
+morph-agent eco swap send -w <wallet> \
+  --to <methodParameters.to> \
+  --value <methodParameters.value> \
+  --data <methodParameters.calldata>
 ```
 
-- `--to` / `--data`: from quote's `methodParameters`
-- `--value`: ETH amount (`0` for ERC-20 → ETH swaps)
+- `--to`: router address from `methodParameters.to`
+- `--data`: calldata hex from `methodParameters.calldata` (**required**)
+- `--value`: ETH amount from `methodParameters.value` (`0` for ERC-20 → ETH swaps)
+- `--dry-run`: add to preview without sending
+
+> **IMPORTANT**: `quote` MUST include `--recipient <address>` to get `methodParameters`. Without `--recipient`, only price information is returned and `swap send` will fail with `--data not specified`.
 
 ### 3. Approve (ERC-20 input only)
 
 ```bash
-morph-agent eco swap approve -w <wallet> --token USDC --amount max --broadcast
+morph-agent eco swap approve -w <wallet> --token USDC --amount max
 ```
 
 ### 4. Check Allowance
@@ -76,30 +85,44 @@ morph-agent eco swap allowance -w <wallet> --token USDC
 ### ETH → USDC (private-key wallet)
 
 ```bash
-morph-agent eco swap quote --amount 0.001 --from ETH --to USDC --recipient 0xYourAddr
-morph-agent eco swap send -w main --to 0x<router> --value 0.001 --data 0x<calldata> --broadcast
+# Step 1: Get quote with calldata (--recipient is required)
+morph-agent eco swap quote --amount 0.001 --from ETH --to USDC --recipient 0x<your_address>
+
+# Step 2: Execute using values from methodParameters
+morph-agent eco swap send -w <wallet> \
+  --to 0x<methodParameters.to> \
+  --value 0.001 \
+  --data 0x<methodParameters.calldata>
 ```
 
 ### ETH → USDC (Social Login wallet)
 
 ```bash
-morph-agent eco swap quote --amount 0.001 --from ETH --to USDC --recipient 0xYourAddr
-morph-agent eco swap send --sl bgw --to 0x<router> --value 0.001 --data 0x<calldata> --broadcast
+morph-agent eco swap quote --amount 0.001 --from ETH --to USDC --recipient 0x<sl_wallet_address>
+morph-agent eco swap send --sl <name> \
+  --to 0x<methodParameters.to> --value 0.001 --data 0x<methodParameters.calldata>
 ```
 
 ### USDC → ETH
 
 ```bash
-morph-agent eco swap approve -w main --token USDC --amount max --broadcast
-morph-agent eco swap quote --amount 10 --from USDC --to ETH --recipient 0xYourAddr
-morph-agent eco swap send -w main --to 0x<router> --data 0x<calldata> --broadcast
+# Step 1: Approve router (needed for ERC-20 input)
+morph-agent eco swap approve -w <wallet> --token USDC --amount max
+
+# Step 2: Quote
+morph-agent eco swap quote --amount 10 --from USDC --to ETH --recipient 0x<your_address>
+
+# Step 3: Send (value is 0 for ERC-20 input)
+morph-agent eco swap send -w <wallet> \
+  --to 0x<methodParameters.to> --value 0 --data 0x<methodParameters.calldata>
 ```
 
-### Swap via EIP-7702 delegation (SL wallet)
+### Swap via EIP-7702 delegation
 
 ```bash
-morph-agent eco swap quote --amount 0.001 --from ETH --to USDC --recipient 0xYourAddr
-morph-agent eco swap send --sl bgw --to 0x<router> --value 0.001 --data 0x<calldata> --eip7702 --broadcast
+morph-agent eco swap quote --amount 0.001 --from ETH --to USDC --recipient 0x<sl_wallet_address>
+morph-agent eco swap send --sl <name> \
+  --to 0x<methodParameters.to> --value 0.001 --data 0x<methodParameters.calldata> --eip7702
 ```
 
 ## Token Symbols
@@ -108,6 +131,6 @@ morph-agent eco swap send --sl bgw --to 0x<router> --value 0.001 --data 0x<calld
 
 ## Safety
 
-- Always verify quote output before broadcasting
+- Always verify quote output before sending (use `--dry-run` to preview)
 - For large swaps, check slippage settings
-- Confirm with user before any `--broadcast`
+- Confirm with user before executing any swap

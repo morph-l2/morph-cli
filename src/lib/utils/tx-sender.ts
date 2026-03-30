@@ -103,7 +103,6 @@ export async function sendTx(
     const result = await send7702(pkWallet, {
       to, value, data,
       testnet: options.hoodi,
-      broadcast: true,
     })
     if (!result.hash) {
       throw new Error('EIP-7702 transaction failed: no hash returned')
@@ -133,7 +132,6 @@ async function sendTxViaSocialLogin(
       value: params.value,
       data: params.data,
       testnet: options.hoodi,
-      broadcast: true,
     })
     if (!result.hash) throw new Error('EIP-7702 SL transaction failed: no hash returned')
     return { hash: result.hash, txType: '0x04' }

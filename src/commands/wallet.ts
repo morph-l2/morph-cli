@@ -287,13 +287,13 @@ export function walletCommand(): Command {
   {
     const transferCmd = cmd
       .command('transfer')
-      .description('Transfer ETH or token. Dry-run by default, add --broadcast to send.')
+      .description('Transfer ETH or token. Add --dry-run to preview.')
       .option('-w, --wallet <name>', 'Private-key wallet name (default: default wallet)')
       .option('--sl <slName>', 'Social Login wallet name')
       .requiredOption('--to <address>', 'Recipient address')
       .requiredOption('--amount <value>', 'Amount (human readable, e.g. 0.1 ETH or 10 BGB)')
       .option('--token <symbol_or_address>', 'Token symbol or contract address. Omit to send ETH.')
-      .option('--broadcast', 'Actually send the transaction')
+      .option('--dry-run', 'Preview transaction without sending')
       .option('--hoodi', 'Use Morph Hoodi testnet')
     addTxModeOptions(transferCmd)
     transferCmd.action(async (opts) => {
@@ -309,7 +309,7 @@ export function walletCommand(): Command {
       const txMode = parseTxModeOptions(opts)
 
       // dry-run preview
-      if (!opts.broadcast) {
+      if (opts.dryRun) {
         out(true, {
           dryRun: true,
           from: walletAddress,
@@ -318,7 +318,7 @@ export function walletCommand(): Command {
           token: isETH ? 'ETH' : tokenInfo!.symbol,
           walletType,
           txMode: txModeLabel(txMode),
-          note: 'Add --broadcast to send',
+          note: 'Add --dry-run to preview without sending',
         })
         return
       }

@@ -80,7 +80,7 @@ All write commands (wallet transfer, eco swap/approve, agentpay identity write o
 |--------|-------------|
 | `--altfee <id>` | Pay gas with ERC-20 (tx type 0x7f). IDs: 4=BGB, 5=USDT, 6=USDC |
 | `--eip7702` | Send via EIP-7702 SimpleDelegation (tx type 0x04) |
-| `--broadcast` | Actually send (default is dry-run preview) |
+| `--dry-run` | Preview without sending (default is broadcast) |
 | `--hoodi` | Switch to Morph Hoodi testnet (chain ID 2910) |
 
 Both `-w` (private-key) and `--sl` (Social Login) wallets support all three tx modes.
@@ -112,7 +112,7 @@ out(false, { error: msg })  // failure + process.exit(1)
 | Contract | Address |
 |----------|---------|
 | TokenRegistry (altfee) | `0x5300000000000000000000000000000000000021` |
-| SimpleDelegation (7702) | `0x6Dbe92bC5251e205B05151bB72e2977dDd78C1E5` |
+| SimpleDelegation (7702, ERC-1271) | `0xBD7093Ded667289F9808Fa0C678F81dbB4d2eEb7` |
 | IdentityRegistry (ERC-8004) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ReputationRegistry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
 

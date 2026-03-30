@@ -364,14 +364,14 @@ function altfeeCommand(): Command {
 
   cmd
     .command('send')
-    .description('Send a transaction paying gas with ERC-20 fee token (tx type 0x7f). Dry-run by default.')
+    .description('Send a transaction paying gas with ERC-20 fee token (tx type 0x7f). Broadcasts by default.')
     .option('-w, --wallet <name>', 'Private-key wallet name (default: default wallet)')
     .option('--sl <name>', 'Social Login wallet name')
     .requiredOption('--to <address>', 'Recipient address')
     .option('--value <eth>', 'ETH value to send', '0')
     .option('--data <hex>', 'Calldata hex')
     .requiredOption('--fee-token-id <id>', 'Fee token ID (4=BGB, 5=USDT, 6=USDC)')
-    .option('--broadcast', 'Actually send the transaction')
+    .option('--dry-run', 'Preview transaction without sending')
     .option('--hoodi', 'Use Morph Hoodi testnet')
     .action(async (opts) => {
       try {
@@ -379,7 +379,7 @@ function altfeeCommand(): Command {
         const value = parseEther(opts.value ?? '0')
         const feeTokenId = Number(opts.feeTokenId)
 
-        if (!opts.broadcast) {
+        if (opts.dryRun) {
           out(true, {
             dryRun: true,
             type: '0x7f',
@@ -387,7 +387,7 @@ function altfeeCommand(): Command {
             to: opts.to,
             value: opts.value ?? '0',
             feeTokenId,
-            note: 'Add --broadcast to send',
+            note: 'Add --dry-run to preview without sending',
           })
           return
         }
@@ -439,14 +439,14 @@ function eip7702Command(): Command {
 
   cmd
     .command('send')
-    .description('Send a single call via EIP-7702 delegation (dry-run by default)')
+    .description('Send a single call via EIP-7702 delegation. Broadcasts by default.')
     .option('-w, --wallet <name>', 'Private-key wallet name')
     .option('--sl <name>', 'Social Login wallet name')
     .requiredOption('--to <address>', 'Target contract/address')
     .option('--value <eth>', 'ETH value', '0')
     .option('--data <hex>', 'Calldata hex', '0x')
     .option('--delegate <address>', 'Delegate contract', DEFAULT_DELEGATE)
-    .option('--broadcast', 'Actually send the transaction')
+    .option('--dry-run', 'Preview transaction without sending')
     .option('--hoodi', 'Use Morph Hoodi testnet')
     .action(async (opts) => {
       try {
@@ -455,19 +455,19 @@ function eip7702Command(): Command {
           to: opts.to as `0x${string}`,
           value: BigInt(Math.round(parseFloat(opts.value) * 1e18)),
           data: (opts.data ?? '0x') as `0x${string}`,
-        }], { delegate: opts.delegate, testnet: opts.hoodi, broadcast: opts.broadcast })
+        }], { delegate: opts.delegate, testnet: opts.hoodi, dryRun: opts.dryRun })
         out(true, result)
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
 
   cmd
     .command('batch')
-    .description('Atomic batch call via SimpleDelegation (dry-run by default)')
+    .description('Atomic batch call via SimpleDelegation. Broadcasts by default.')
     .option('-w, --wallet <name>', 'Private-key wallet name')
     .option('--sl <name>', 'Social Login wallet name')
     .requiredOption('--calls <json>', 'JSON array of [{to, value, data}]')
     .option('--delegate <address>', 'Delegate contract', DEFAULT_DELEGATE)
-    .option('--broadcast', 'Actually send the transaction')
+    .option('--dry-run', 'Preview transaction without sending')
     .option('--hoodi', 'Use Morph Hoodi testnet')
     .action(async (opts) => {
       try {
@@ -478,7 +478,7 @@ function eip7702Command(): Command {
           data: (c.data ?? '0x') as `0x${string}`,
         }))
         const result = await batch7702(wallet, calls, {
-          delegate: opts.delegate, testnet: opts.hoodi, broadcast: opts.broadcast,
+          delegate: opts.delegate, testnet: opts.hoodi, dryRun: opts.dryRun,
         })
         out(true, result)
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
@@ -486,15 +486,15 @@ function eip7702Command(): Command {
 
   cmd
     .command('revoke')
-    .description('Revoke 7702 delegation (dry-run by default)')
+    .description('Revoke 7702 delegation. Broadcasts by default.')
     .option('-w, --wallet <name>', 'Private-key wallet name')
     .option('--sl <name>', 'Social Login wallet name')
-    .option('--broadcast', 'Actually send the transaction')
+    .option('--dry-run', 'Preview transaction without sending')
     .option('--hoodi', 'Use Morph Hoodi testnet')
     .action(async (opts) => {
       try {
         const { wallet } = resolveWallet(opts)
-        const result = await revoke7702(wallet, { testnet: opts.hoodi, broadcast: opts.broadcast })
+        const result = await revoke7702(wallet, { testnet: opts.hoodi, dryRun: opts.dryRun })
         out(true, result)
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })

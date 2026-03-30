@@ -18,15 +18,24 @@ import { encodePacked, hashTypedData, keccak256, toHex, type Hex } from 'viem'
 import { decrypt, type WalletData } from '../../wallet/keystore.js'
 import type { SocialWalletConfig } from '../../wallet/social-login.js'
 import { signTypedDataHash, decryptCredentials, BGW_MORPH_CHAIN } from '../../wallet/social-login.js'
+import { getPublicClient } from '../../utils/rpc.js'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 export const MORPH_FACILITATOR = 'https://morph-rails.morph.network/x402' as const
 export const MORPH_NETWORK = 'eip155:2818' as const
 
+// Legacy SimpleDelegation without ERC-1271 — incompatible with USDC FiatTokenV2.2 settle
+const LEGACY_SIMPLE_DELEGATION = '0x6dbe92bc5251e205b05151bb72e2977ddd78c1e5' as const
+const DELEGATION_PREFIX = '0xef0100' as const
+
 // Morph mainnet USDC
 const USDC_ADDRESS = '0xCfb1186F4e93D60E60a8bDd997427D1F33bc372B' as const
 const USDC_DECIMALS = 6
+
+// Facilitator signer address — the address that calls receiveWithAuthorization on-chain.
+// From GET /v2/supported → signers["eip155:*"][0]
+const FACILITATOR_SIGNER = '0xb22C2E02997B10bc481907f05475C90047e84697' as const
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -186,6 +195,37 @@ export async function signEIP3009(
 ): Promise<PaymentPayload> {
   const isSocialLogin = 'credentials' in wallet
 
+  // Derive fromAddress + account once (avoid double decrypt for private-key wallets)
+  let fromAddress: `0x${string}`
+  let pkAccount: ReturnType<typeof privateKeyToAccount> | undefined
+  if (isSocialLogin) {
+    fromAddress = (wallet as SocialWalletConfig).address as `0x${string}`
+  } else {
+    const privateKey = decrypt((wallet as WalletData).privateKey) as `0x${string}`
+    pkAccount = privateKeyToAccount(privateKey)
+    fromAddress = pkAccount.address
+  }
+
+  // EIP-7702 compatibility check: USDC FiatTokenV2.2 calls ERC-1271 isValidSignature
+  // when extcodesize(from) > 0. Old SimpleDelegation lacks isValidSignature → settle fails.
+  try {
+    const client = getPublicClient(false)
+    const code = await client.getCode({ address: fromAddress })
+    if (code && code.toLowerCase().startsWith(DELEGATION_PREFIX)) {
+      const delegateTo = code.toLowerCase().slice(DELEGATION_PREFIX.length, DELEGATION_PREFIX.length + 40)
+      if (`0x${delegateTo}` === LEGACY_SIMPLE_DELEGATION) {
+        throw new Error(
+          `Wallet ${fromAddress} is delegated to legacy SimpleDelegation (0x6Dbe92bC...) which lacks ERC-1271. ` +
+          `USDC settle will fail. Please re-delegate to the new contract: ` +
+          `morph-agent onchain 7702 send -w <wallet> --to <any-address> --value 0`,
+        )
+      }
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.includes('legacy SimpleDelegation')) throw e
+    // Otherwise ignore RPC errors (don't block signing)
+  }
+
   // Resolve amount
   const amount = requirements.amount ?? requirements.maxAmountRequired ?? '0'
 
@@ -194,11 +234,6 @@ export async function signEIP3009(
 
   // Resolve token address
   const tokenAddress = (requirements.asset ?? USDC_ADDRESS) as `0x${string}`
-
-  // Resolve from address
-  const fromAddress: `0x${string}` = isSocialLogin
-    ? (wallet as SocialWalletConfig).address as `0x${string}`
-    : privateKeyToAccount(decrypt((wallet as WalletData).privateKey) as `0x${string}`).address
 
   // Build authorization params
   const validAfter = '0'
@@ -213,10 +248,13 @@ export async function signEIP3009(
   const tokenVersion = (requirements.extra?.['version'] as string) ?? '2'
 
   // EIP-712 typed data params
+  // `to` = merchant payTo address. The Facilitator calls transferWithAuthorization on-chain,
+  // which transfers USDC from payer directly to the merchant. Verify passes with this combo.
+  const payTo = (requirements.payTo ?? FACILITATOR_SIGNER) as `0x${string}`
   const domain = getEIP3009Domain(tokenAddress, chainId, tokenName, tokenVersion)
   const message = {
     from: fromAddress,
-    to: requirements.payTo as `0x${string}`,
+    to: payTo,
     value: BigInt(amount),
     validAfter: BigInt(validAfter),
     validBefore: BigInt(validBefore),
@@ -236,10 +274,8 @@ export async function signEIP3009(
     const creds = decryptCredentials(wallet as SocialWalletConfig)
     signature = await signTypedDataHash(creds, BGW_MORPH_CHAIN, hash) as Hex
   } else {
-    // Private-key: sign locally with viem
-    const privateKey = decrypt((wallet as WalletData).privateKey) as `0x${string}`
-    const account = privateKeyToAccount(privateKey)
-    signature = await account.signTypedData({
+    // Private-key: reuse account derived above
+    signature = await pkAccount!.signTypedData({
       domain,
       types: EIP3009_TYPES,
       primaryType: 'TransferWithAuthorization',
@@ -253,7 +289,7 @@ export async function signEIP3009(
       signature,
       authorization: {
         from: fromAddress,
-        to: requirements.payTo,
+        to: payTo,
         value: amount,
         validAfter,
         validBefore,
