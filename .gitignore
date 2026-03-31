@@ -4,6 +4,7 @@ dist/
 *.local
 coverage/
 docs/
+tmp/
 
 # Dev/test scripts (internal, may contain test addresses/credentials)
 scripts/

@@ -30,4 +30,9 @@ program.addCommand(ecoCommand())
 // L4 — Agent Payment: x402
 program.addCommand(agentpayCommand())
 
-program.parse()
+// Strip leading '--' injected by `pnpm dev -- <args>` so Commander
+// doesn't treat subsequent flags as positional arguments.
+const argv = process.argv.slice()
+if (argv[2] === '--') argv.splice(2, 1)
+
+program.parse(argv)

@@ -42,13 +42,11 @@ beforeEach(() => {
 
 describe('verifyPayment', () => {
   it('sends correct request to facilitator /v2/verify', async () => {
+    const mockBody = { isValid: true, invalidReason: '', payer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' }
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({
-        isValid: true,
-        invalidReason: '',
-        payer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-      }),
+      text: async () => JSON.stringify(mockBody),
+      json: async () => mockBody,
     })
 
     const result = await verifyPayment(MOCK_CREDS, MOCK_PAYLOAD, MOCK_REQUIREMENTS)
@@ -73,25 +71,28 @@ describe('verifyPayment', () => {
   })
 
   it('throws on non-ok response with invalidReason', async () => {
+    const body = { invalidReason: 'Invalid signature' }
     mockFetch.mockResolvedValue({
       ok: false,
       status: 400,
-      json: async () => ({ invalidReason: 'Invalid signature' }),
+      text: async () => JSON.stringify(body),
+      json: async () => body,
     })
 
     await expect(verifyPayment(MOCK_CREDS, MOCK_PAYLOAD, MOCK_REQUIREMENTS))
-      .rejects.toThrow('Facilitator error: Invalid signature')
+      .rejects.toThrow('Facilitator HTTP 400: Invalid signature')
   })
 
   it('uses HTTP status as fallback error message', async () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 500,
+      text: async () => '{}',
       json: async () => ({}),
     })
 
     await expect(verifyPayment(MOCK_CREDS, MOCK_PAYLOAD, MOCK_REQUIREMENTS))
-      .rejects.toThrow('Facilitator error: HTTP 500')
+      .rejects.toThrow('Facilitator HTTP 500')
   })
 })
 
@@ -99,15 +100,11 @@ describe('verifyPayment', () => {
 
 describe('settlePayment', () => {
   it('sends correct request to facilitator /v2/settle', async () => {
+    const body = { success: true, errorReason: '', payer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', transaction: '0xdeadbeef', network: 'eip155:2818' }
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({
-        success: true,
-        errorReason: '',
-        payer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-        transaction: '0xdeadbeef',
-        network: 'eip155:2818',
-      }),
+      text: async () => JSON.stringify(body),
+      json: async () => body,
     })
 
     const result = await settlePayment(MOCK_CREDS, MOCK_PAYLOAD, MOCK_REQUIREMENTS)
@@ -121,14 +118,16 @@ describe('settlePayment', () => {
   })
 
   it('throws on non-ok response with errorReason', async () => {
+    const body = { errorReason: 'Payment already settled' }
     mockFetch.mockResolvedValue({
       ok: false,
       status: 400,
-      json: async () => ({ errorReason: 'Payment already settled' }),
+      text: async () => JSON.stringify(body),
+      json: async () => body,
     })
 
     await expect(settlePayment(MOCK_CREDS, MOCK_PAYLOAD, MOCK_REQUIREMENTS))
-      .rejects.toThrow('Facilitator error: Payment already settled')
+      .rejects.toThrow('Facilitator HTTP 400: Payment already settled')
   })
 })
 
@@ -136,9 +135,11 @@ describe('settlePayment', () => {
 
 describe('HMAC signing', () => {
   it('includes all required MORPH-ACCESS headers', async () => {
+    const body = { isValid: true, invalidReason: '', payer: '0x' }
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({ isValid: true, invalidReason: '', payer: '0x' }),
+      text: async () => JSON.stringify(body),
+      json: async () => body,
     })
 
     await verifyPayment(MOCK_CREDS, MOCK_PAYLOAD, MOCK_REQUIREMENTS)
@@ -151,9 +152,11 @@ describe('HMAC signing', () => {
   })
 
   it('timestamp is recent (within 5 seconds)', async () => {
+    const body = { isValid: true, invalidReason: '', payer: '0x' }
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({ isValid: true, invalidReason: '', payer: '0x' }),
+      text: async () => JSON.stringify(body),
+      json: async () => body,
     })
 
     const before = Date.now()

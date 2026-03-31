@@ -36,6 +36,8 @@ morph-agent agentpay x402 pay -w <wallet> --url <url> --dry-run
 
 ## Merchant-Side Commands
 
+> **Merchants must `register` first**: registers your wallet address with the Facilitator and automatically generates HMAC credentials (access-key + secret-key). Unregistered wallets cannot use verify/settle or start a server in `--verify` mode.
+
 ```bash
 # Register with Facilitator (get HMAC credentials, --save encrypts locally)
 morph-agent agentpay x402 register -w <wallet> [--save]

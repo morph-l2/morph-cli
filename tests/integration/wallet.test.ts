@@ -121,17 +121,18 @@ describe('wallet import', () => {
 })
 
 describe('wallet transfer dry-run', () => {
-  it('returns dryRun preview without --broadcast', () => {
+  it('returns dryRun preview with --dry-run', () => {
     cli(['wallet', 'create', '-n', TEST_NAME])
     const res = cli([
       'wallet', 'transfer',
       '-w', TEST_NAME,
       '--to', '0x0000000000000000000000000000000000000001',
       '--amount', '0.001',
+      '--dry-run',
     ])
     const data = res as { dryRun: boolean; note: string }
     expect(data.dryRun).toBe(true)
-    expect(data.note).toContain('--broadcast')
+    expect(data.note).toContain('--dry-run')
   })
 
   it('dry-run includes from/to/amount/token fields', () => {
@@ -141,6 +142,7 @@ describe('wallet transfer dry-run', () => {
       '-w', TEST_NAME,
       '--to', '0x0000000000000000000000000000000000000001',
       '--amount', '0.1',
+      '--dry-run',
     ])
     const data = res as Record<string, unknown>
     expect(data).toHaveProperty('from')

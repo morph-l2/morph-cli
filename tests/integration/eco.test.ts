@@ -48,13 +48,14 @@ describe('eco swap quote', () => {
 })
 
 describe('eco swap send dry-run', () => {
-  it('returns dry-run preview without --broadcast', () => {
+  it('returns dry-run preview with --dry-run', () => {
     const res = cli([
       'eco', 'swap', 'send',
       '-w', TEST_WALLET,
       '--to', '0xb789922D715475F419b7CB47B6155bF7a2ACECD6',
       '--value', '0.0001',
       '--data', '0x12345678',
+      '--dry-run',
     ])
     const data = res as { dryRun: boolean }
     expect(data.dryRun).toBe(true)
@@ -68,6 +69,7 @@ describe('eco swap approve dry-run', () => {
       '-w', TEST_WALLET,
       '--token', 'USDC',
       '--amount', '100',
+      '--dry-run',
     ])
     const data = res as { dryRun: boolean; token: string; amount: string }
     expect(data.dryRun).toBe(true)

@@ -119,12 +119,13 @@ describe('onchainaltfee estimate', () => {
 })
 
 describe('onchainaltfee send dry-run', () => {
-  it('returns dry-run preview without --broadcast', () => {
+  it('returns dry-run preview with --dry-run', () => {
     const res = cli([
       'onchain', 'altfee', 'send',
       '-w', 'testnet_dev',
       '--to', '0x0000000000000000000000000000000000000001',
       '--fee-token-id', '5',
+      '--dry-run',
     ]) as { dryRun: boolean; type: string }
     expect(res.dryRun).toBe(true)
     expect(res.type).toBe('0x7f')
