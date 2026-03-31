@@ -118,21 +118,12 @@ export async function callSocialApi(
     sig: paramSign,
   }
 
-  // BGW API may be behind a corporate proxy with self-signed certs
-  const prevTls = process.env.NODE_TLS_REJECT_UNAUTHORIZED
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-  let res: Response
-  try {
-    res = await fetch(`${BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers,
-      body: bodyStr,
-      signal: AbortSignal.timeout(15000),
-    })
-  } finally {
-    if (prevTls === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
-    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = prevTls
-  }
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers,
+    body: bodyStr,
+    signal: AbortSignal.timeout(15000),
+  })
 
   const data = (await res.json()) as Record<string, unknown>
   const status = data.status as number
