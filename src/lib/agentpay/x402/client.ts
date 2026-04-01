@@ -308,6 +308,15 @@ export async function signEIP3009(
 
 // ─── Pay ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Select the best payment requirement from a list.
+ * Prefers the Morph network entry; falls back to the first item.
+ * Exported so the command layer can show the same choice in dry-run output.
+ */
+export function selectRequirement(reqs: PaymentRequirements[]): PaymentRequirements {
+  return reqs.find(r => r.network === MORPH_NETWORK) ?? reqs[0]
+}
+
 /** Full x402 pay flow: probe → sign → replay */
 export async function payX402(
   wallet: WalletData | SocialWalletConfig,
@@ -320,9 +329,8 @@ export async function payX402(
     return { url, paid: false, response: { status: probe.status, headers: {}, body: probe.body } }
   }
 
-  // Pick first matching requirement (prefer Morph network)
-  const req = probe.paymentRequirements.find(r => r.network === MORPH_NETWORK)
-    ?? probe.paymentRequirements[0]
+  // Pick best matching requirement (prefer Morph network)
+  const req = selectRequirement(probe.paymentRequirements)
 
   // Check payment limit
   const amount = req.amount ?? req.maxAmountRequired ?? '0'
@@ -364,9 +372,12 @@ export async function payX402(
     resBody = await replayRes.text()
   }
 
+  // paid = true only when the resource server acknowledged the payment (2xx)
+  const paid = replayRes.status >= 200 && replayRes.status < 300
+
   return {
     url,
-    paid: true,
+    paid,
     paymentPayload,
     response: {
       status: replayRes.status,

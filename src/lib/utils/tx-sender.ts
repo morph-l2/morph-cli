@@ -30,7 +30,7 @@ export interface TxOptions {
 
 export interface TxResult {
   hash: string
-  txType: string      // '0x02' | '0x7f' | '0x04'
+  txType: string      // '0x02' | '0x7f' | '0x04' | '0x00' (legacy, used by Social Login standard send)
 }
 
 // ─── Send ───────────────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ async function sendTxViaSocialLogin(
     params: [signedTx as `0x${string}`],
   })
 
-  return { hash: hash as string, txType: 'social-login' }
+  return { hash: hash as string, txType: '0x00' }
 }
 
 // ─── CLI helpers ────────────────────────────────────────────────────────────

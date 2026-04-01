@@ -32,7 +32,7 @@ import { Command } from 'commander'
 import { out, assertExclusiveWallet } from '../lib/utils/output.js'
 import { resolveWalletName } from '../lib/wallet/keystore.js'
 import { resolveWallet } from '../lib/wallet/resolve.js'
-import { probeX402, payX402, getSupported } from '../lib/agentpay/x402/client.js'
+import { probeX402, payX402, selectRequirement, getSupported } from '../lib/agentpay/x402/client.js'
 import { verifyPayment, settlePayment } from '../lib/agentpay/x402/facilitator.js'
 import { saveCredentials, loadCredentials, listCredentials, removeCredentials } from '../lib/agentpay/x402/credentials.js'
 import { registerMerchant } from '../lib/agentpay/x402/register.js'
@@ -68,6 +68,8 @@ function resolveCreds(opts: { wallet?: string; sl?: string; accessKey?: string; 
   if (opts.accessKey && opts.secretKey) {
     return { accessKey: opts.accessKey, secretKey: opts.secretKey }
   }
+  // Enforce mutual exclusivity of -w and --sl
+  assertExclusiveWallet(opts)
   // Try loading by wallet name
   const name = opts.sl ?? opts.wallet ?? resolveWalletName(undefined)
   const saved = loadCredentials(name)
@@ -144,7 +146,7 @@ function x402Command(): Command {
           process.exit(1)
         }
 
-        const req = probe.paymentRequirements[0]
+        const req = selectRequirement(probe.paymentRequirements)
         const amount = req.amount ?? req.maxAmountRequired ?? '0'
         const amountHuman = (Number(amount) / 1e6).toFixed(6)
 
@@ -160,9 +162,24 @@ function x402Command(): Command {
 
         const result = await payX402(wallet, opts.url, { maxPayment: parseFloat(opts.maxPayment), method: opts.method })
 
-        if (!result.paid) {
+        if (!result.paid && !result.paymentPayload) {
+          // probe returned non-402 on second attempt (no payment needed)
           out(true, { url: opts.url, paid: false, note: 'No payment required' })
           return
+        }
+
+        if (!result.paid) {
+          // Signature was submitted but resource server rejected it
+          out(false, {
+            url: opts.url, paid: false,
+            from: result.paymentPayload?.payload.authorization.from,
+            payTo: result.paymentPayload?.payload.authorization.to,
+            amount: amountHuman + ' USDC',
+            responseStatus: result.response?.status,
+            responseBody: result.response?.body,
+            error: `Payment signature submitted but server returned HTTP ${result.response?.status}`,
+          })
+          process.exit(1)
         }
 
         out(true, {
