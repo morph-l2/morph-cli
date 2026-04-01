@@ -39,13 +39,14 @@ export function walletCommand(): Command {
     .command('create')
     .description('Create a new wallet with AES-256-GCM encrypted storage')
     .option('-n, --name <name>', 'Wallet name', 'main')
+    .option('--force', 'Overwrite existing wallet with the same name')
     .action((opts) => {
-      if (loadWallet(opts.name)) {
-        out(false, { error: `Wallet "${opts.name}" already exists` })
-        process.exit(1)
-      }
       if (loadSocialWallet(opts.name)) {
         out(false, { error: `Social Login wallet "${opts.name}" already exists. Choose a different name.` })
+        process.exit(1)
+      }
+      if (loadWallet(opts.name) && !opts.force) {
+        out(false, { error: `Wallet "${opts.name}" already exists. Use --force to overwrite.` })
         process.exit(1)
       }
       const privateKey = generatePrivateKey()
@@ -71,6 +72,7 @@ export function walletCommand(): Command {
     .option('-n, --name <name>', 'Wallet name', 'main')
     .option('-k, --private-key <key>', 'Private key (0x...)')
     .option('-f, --private-key-file <path>', 'Path to file containing private key')
+    .option('--force', 'Overwrite existing wallet with the same name')
     .action((opts) => {
       try {
       let privateKey: `0x${string}`
@@ -89,12 +91,12 @@ export function walletCommand(): Command {
         out(false, { error: 'Provide --private-key <key> or --private-key-file <path>' })
         process.exit(1)
       }
-      if (loadWallet(opts.name)) {
-        out(false, { error: `Wallet "${opts.name}" already exists. Use a different name or remove it first.` })
-        process.exit(1)
-      }
       if (loadSocialWallet(opts.name)) {
         out(false, { error: `Social Login wallet "${opts.name}" already exists. Choose a different name.` })
+        process.exit(1)
+      }
+      if (loadWallet(opts.name) && !opts.force) {
+        out(false, { error: `Wallet "${opts.name}" already exists. Use --force to overwrite.` })
         process.exit(1)
       }
       const account = privateKeyToAccount(privateKey)
@@ -375,14 +377,20 @@ export function walletCommand(): Command {
     .requiredOption('-n, --name <name>', 'Wallet name')
     .requiredOption('--appid <appid>', 'Social Login appid')
     .requiredOption('--appsecret <secret>', 'Social Login appsecret (hex)')
+    .option('--force', 'Allow overwriting an existing Social Login wallet')
     .action(async (opts) => {
       // Check name conflict with private-key wallets
       if (loadWallet(opts.name)) {
         out(false, { error: `Private-key wallet "${opts.name}" already exists. Choose a different name.` })
         process.exit(1)
       }
-      const existing = loadSocialWallet(opts.name)
-      const isRebind = !!existing
+      // Check existing SL wallet — block unless --force
+      const existingSl = loadSocialWallet(opts.name)
+      if (existingSl && !opts.force) {
+        out(false, { error: `Social Login wallet "${opts.name}" already exists. Use --force to overwrite.` })
+        process.exit(1)
+      }
+      const isRebind = !!existingSl
 
       const creds = { appid: opts.appid, appsecret: opts.appsecret }
 
