@@ -8,7 +8,6 @@ description: "Morph L2 chain operations via morphcli — RPC queries (balance, n
 `morph-agent onchain` has four subgroups: `rpc` (real-time), `explorer` (Blockscout historical), `altfee` (ERC-20 gas payment), `7702` (EIP-7702 delegation).
 
 - **Text output** by default; add `--json` for structured JSON
-- Add `--hoodi` to switch to Morph Hoodi testnet (chain ID 2910)
 
 ## onchain rpc — Real-time Chain Queries
 

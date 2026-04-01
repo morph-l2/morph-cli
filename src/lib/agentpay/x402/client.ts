@@ -209,7 +209,7 @@ export async function signEIP3009(
   // EIP-7702 compatibility check: USDC FiatTokenV2.2 calls ERC-1271 isValidSignature
   // when extcodesize(from) > 0. Old SimpleDelegation lacks isValidSignature → settle fails.
   try {
-    const client = getPublicClient(false)
+    const client = getPublicClient()
     const code = await client.getCode({ address: fromAddress })
     if (code && code.toLowerCase().startsWith(DELEGATION_PREFIX)) {
       const delegateTo = code.toLowerCase().slice(DELEGATION_PREFIX.length, DELEGATION_PREFIX.length + 40)

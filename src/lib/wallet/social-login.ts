@@ -13,7 +13,7 @@ import {
 } from 'crypto'
 import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from 'fs'
 import { join } from 'path'
-import { SOCIAL_WALLETS_DIR, ensureDirs } from '../utils/config.js'
+import { SOCIAL_WALLETS_DIR, ensureDirs, safeName } from '../utils/config.js'
 import { encrypt, decrypt } from './keystore.js'
 import type { EncryptedData } from './keystore.js'
 
@@ -236,12 +236,12 @@ export const BGW_MORPH_CHAIN = 'evm_custom#morph' as const
 
 export function saveSocialWallet(config: SocialWalletConfig): void {
   ensureDirs()
-  const filePath = join(SOCIAL_WALLETS_DIR, `${config.name}.json`)
+  const filePath = join(SOCIAL_WALLETS_DIR, `${safeName(config.name)}.json`)
   writeFileSync(filePath, JSON.stringify(config, null, 2), { mode: 0o600 })
 }
 
 export function loadSocialWallet(name: string): SocialWalletConfig | null {
-  const filePath = join(SOCIAL_WALLETS_DIR, `${name}.json`)
+  const filePath = join(SOCIAL_WALLETS_DIR, `${safeName(name)}.json`)
   if (!existsSync(filePath)) return null
   return JSON.parse(readFileSync(filePath, 'utf8'))
 }
@@ -255,7 +255,7 @@ export function listSocialWallets(): SocialWalletConfig[] {
 }
 
 export function removeSocialWallet(name: string): boolean {
-  const filePath = join(SOCIAL_WALLETS_DIR, `${name}.json`)
+  const filePath = join(SOCIAL_WALLETS_DIR, `${safeName(name)}.json`)
   if (!existsSync(filePath)) return false
   unlinkSync(filePath)
   return true

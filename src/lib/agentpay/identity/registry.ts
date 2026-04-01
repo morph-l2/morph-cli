@@ -16,6 +16,19 @@ import { REPUTATION_REGISTRY, REPUTATION_ABI } from '../../../contracts/reputati
 
 export { IDENTITY_REGISTRY, REPUTATION_REGISTRY }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Return true only for contract-level revert errors; rethrow network/RPC errors */
+function isContractRevert(err: unknown): boolean {
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase()
+    if (msg.includes('reverted') || msg.includes('execution')) return true
+    // If the message doesn't look like a revert, it's probably a network error
+    return false
+  }
+  return false
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface AgentInfo {
@@ -46,8 +59,8 @@ export interface AgentReputation {
 // ─── Identity: Read ──────────────────────────────────────────────────────────
 
 /** Get registry info (name, symbol, version, owner) */
-export async function getRegistryInfo(testnet = false): Promise<RegistryInfo> {
-  const client = getPublicClient(testnet)
+export async function getRegistryInfo(): Promise<RegistryInfo> {
+  const client = getPublicClient()
 
   const [name, symbol, version, owner] = await Promise.all([
     client.readContract({ address: IDENTITY_REGISTRY, abi: IDENTITY_ABI, functionName: 'name' }) as Promise<string>,
@@ -64,8 +77,8 @@ export async function getRegistryInfo(testnet = false): Promise<RegistryInfo> {
 }
 
 /** Get agent info by ID */
-export async function getAgentInfo(agentId: number, testnet = false): Promise<AgentInfo> {
-  const client = getPublicClient(testnet)
+export async function getAgentInfo(agentId: number): Promise<AgentInfo> {
+  const client = getPublicClient()
   const id = BigInt(agentId)
 
   // No agentExists() in v2 — try ownerOf and catch revert
@@ -75,8 +88,8 @@ export async function getAgentInfo(agentId: number, testnet = false): Promise<Ag
     }) as string
 
     const [uri, wallet] = await Promise.all([
-      client.readContract({ address: IDENTITY_REGISTRY, abi: IDENTITY_ABI, functionName: 'tokenURI', args: [id] }).catch(() => '') as Promise<string>,
-      client.readContract({ address: IDENTITY_REGISTRY, abi: IDENTITY_ABI, functionName: 'getAgentWallet', args: [id] }).catch(() => '0x0000000000000000000000000000000000000000') as Promise<string>,
+      client.readContract({ address: IDENTITY_REGISTRY, abi: IDENTITY_ABI, functionName: 'tokenURI', args: [id] }).catch((err) => { if (!isContractRevert(err)) throw err; return '' }) as Promise<string>,
+      client.readContract({ address: IDENTITY_REGISTRY, abi: IDENTITY_ABI, functionName: 'getAgentWallet', args: [id] }).catch((err) => { if (!isContractRevert(err)) throw err; return '0x0000000000000000000000000000000000000000' }) as Promise<string>,
     ])
 
     return {
@@ -86,14 +99,15 @@ export async function getAgentInfo(agentId: number, testnet = false): Promise<Ag
       uri: uri || undefined,
       wallet: wallet === '0x0000000000000000000000000000000000000000' ? undefined : wallet,
     }
-  } catch {
+  } catch (err) {
+    if (!isContractRevert(err)) throw err
     return { agentId: agentId.toString(), exists: false }
   }
 }
 
 /** Get agent metadata by key */
-export async function getAgentMetadata(agentId: number, key: string, testnet = false): Promise<string> {
-  const client = getPublicClient(testnet)
+export async function getAgentMetadata(agentId: number, key: string): Promise<string> {
+  const client = getPublicClient()
   const result = await client.readContract({
     address: IDENTITY_REGISTRY,
     abi: IDENTITY_ABI,
@@ -110,8 +124,8 @@ export async function getAgentMetadata(agentId: number, key: string, testnet = f
 }
 
 /** Get number of agents owned by an address */
-export async function getAgentBalance(address: string, testnet = false): Promise<string> {
-  const client = getPublicClient(testnet)
+export async function getAgentBalance(address: string): Promise<string> {
+  const client = getPublicClient()
   const result = await client.readContract({
     address: IDENTITY_REGISTRY,
     abi: IDENTITY_ABI,
@@ -122,8 +136,8 @@ export async function getAgentBalance(address: string, testnet = false): Promise
 }
 
 /** Get total number of registered agents (may not be supported on all deployments) */
-export async function getTotalAgents(testnet = false): Promise<string> {
-  const client = getPublicClient(testnet)
+export async function getTotalAgents(): Promise<string> {
+  const client = getPublicClient()
   try {
     const result = await client.readContract({
       address: IDENTITY_REGISTRY,
@@ -131,7 +145,8 @@ export async function getTotalAgents(testnet = false): Promise<string> {
       functionName: 'totalAgents',
     }) as bigint
     return result.toString()
-  } catch {
+  } catch (err) {
+    if (!isContractRevert(err)) throw err
     throw new Error('totalAgents() not supported on this contract deployment. Try querying individual agent IDs.')
   }
 }
@@ -176,8 +191,8 @@ export function encodeSetAgentURI(agentId: number, newURI: string): `0x${string}
 // ─── Reputation: Read ────────────────────────────────────────────────────────
 
 /** Get reputation summary for an agent */
-export async function getReputationSummary(agentId: number, testnet = false): Promise<AgentReputation> {
-  const client = getPublicClient(testnet)
+export async function getReputationSummary(agentId: number): Promise<AgentReputation> {
+  const client = getPublicClient()
   const id = BigInt(agentId)
 
   // Step 1: get clients first (getSummary requires non-empty clientAddresses)
@@ -270,9 +285,9 @@ export function encodeUnsetAgentWallet(agentId: number): `0x${string}` {
 
 /** Read single feedback entry */
 export async function readFeedback(
-  agentId: number, clientAddress: string, feedbackIndex: number, testnet = false,
+  agentId: number, clientAddress: string, feedbackIndex: number,
 ): Promise<{ value: string; valueDecimals: number; tag1: string; tag2: string; isRevoked: boolean }> {
-  const client = getPublicClient(testnet)
+  const client = getPublicClient()
   const result = await client.readContract({
     address: REPUTATION_REGISTRY, abi: REPUTATION_ABI,
     functionName: 'readFeedback',
@@ -289,9 +304,9 @@ export async function readFeedback(
 
 /** Read all feedback for an agent */
 export async function readAllFeedback(
-  agentId: number, testnet = false, includeRevoked = false,
+  agentId: number, includeRevoked = false,
 ): Promise<Array<{ client: string; index: string; value: string; decimals: number; tag1: string; tag2: string; revoked: boolean }>> {
-  const client = getPublicClient(testnet)
+  const client = getPublicClient()
   const id = BigInt(agentId)
 
   // Get clients first

@@ -159,7 +159,6 @@
 - **Default Wallet**: First wallet created is automatically set as default
 - **Dry-run Mode**: All write operations broadcast by default; use `--dry-run` to preview first
 - **Output Format**: Default text output; use `--json` to switch to JSON
-- **Testnet Support**: `--hoodi` switches to Morph Hoodi testnet
 - **Unified Transaction Modes**: All write commands (transfer, swap, approve, register, feedback, etc.) support:
   - `--altfee <id>`: Pay gas with ERC-20 token (tx type 0x7f). IDs: 4=BGB, 5=USDT, 6=USDC
   - `--eip7702`: Send via EIP-7702 SimpleDelegation (tx type 0x04)

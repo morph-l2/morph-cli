@@ -1,6 +1,6 @@
 import { getPublicClient } from './rpc.js'
 import { ERC20_ABI } from '../../contracts/erc20.js'
-import { MORPH_TOKENS, MORPH_TESTNET_TOKENS } from './config.js'
+import { MORPH_TOKENS } from './config.js'
 
 export interface TokenInfo {
   address: `0x${string}`
@@ -17,13 +17,12 @@ const _cache = new Map<string, TokenInfo>()
  * For 0x addresses: fetches decimals() and symbol() from chain.
  * Returns null for "ETH" (native).
  */
-export async function resolveToken(symbolOrAddress: string, testnet = false): Promise<TokenInfo | null> {
+export async function resolveToken(symbolOrAddress: string): Promise<TokenInfo | null> {
   const upper = symbolOrAddress.toUpperCase()
   if (upper === 'ETH') return null
 
-  // Check known token list (case-insensitive); use testnet list when --hoodi
-  const tokenList = testnet ? MORPH_TESTNET_TOKENS : MORPH_TOKENS
-  for (const [sym, info] of Object.entries(tokenList)) {
+  // Check known token list (case-insensitive)
+  for (const [sym, info] of Object.entries(MORPH_TOKENS)) {
     if (sym.toUpperCase() === upper) return { ...info, symbol: sym }
   }
 
@@ -35,16 +34,15 @@ export async function resolveToken(symbolOrAddress: string, testnet = false): Pr
   }
 
   const addr = symbolOrAddress.toLowerCase() as `0x${string}`
-  const cacheKey = `${testnet ? 't' : 'm'}:${addr}`
-  if (_cache.has(cacheKey)) return _cache.get(cacheKey)!
+  if (_cache.has(addr)) return _cache.get(addr)!
 
-  const client = getPublicClient(testnet)
+  const client = getPublicClient()
   const [decimals, symbol] = await Promise.all([
     client.readContract({ address: addr, abi: ERC20_ABI, functionName: 'decimals' }) as Promise<number>,
     client.readContract({ address: addr, abi: ERC20_ABI, functionName: 'symbol' }) as Promise<string>,
   ])
 
   const info: TokenInfo = { address: addr, decimals, symbol }
-  _cache.set(cacheKey, info)
+  _cache.set(addr, info)
   return info
 }

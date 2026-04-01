@@ -26,7 +26,7 @@ function swapCommand(): Command {
     .option('--slippage <pct>', 'Slippage tolerance % (default: 1)', '1')
     .option('--deadline <s>', 'Quote validity in seconds (default: 300)', '300')
     .option('--recipient <address>', 'Recipient address (required for calldata)')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
         const data = await getSwapQuote({
@@ -36,7 +36,7 @@ function swapCommand(): Command {
           slippage: opts.slippage,
           deadline: opts.deadline,
           recipient: opts.recipient,
-          hoodi: opts.hoodi,
+          
         })
         out(true, data)
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
@@ -52,7 +52,7 @@ function swapCommand(): Command {
       .option('--value <eth>', 'ETH value in ETH (from methodParameters.value, default: 0)', '0')
       .requiredOption('--data <hex>', 'Calldata hex (from methodParameters.calldata)')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(sendCmd)
     sendCmd.action(async (opts) => {
       try {
@@ -68,7 +68,7 @@ function swapCommand(): Command {
             value: opts.value ?? '0',
             dataLength: (opts.data as string).length,
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
@@ -93,15 +93,15 @@ function swapCommand(): Command {
       .option('--spender <address>', 'Router/spender address (default: Bulbaswap universalRouter)')
       .requiredOption('--amount <value>', 'Allowance amount (human-readable, or "max")')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(approveCmd)
     approveCmd.action(async (opts) => {
       try {
         const { wallet } = resolveWallet(opts)
 
-        const token = await resolveErc20(opts.token, opts.hoodi)
+        const token = await resolveErc20(opts.token)
         if (!token) { out(false, { error: 'ETH cannot be approved' }); process.exit(1) }
-        const spender = (opts.spender ?? getDefaultSpender(opts.hoodi)) as `0x${string}`
+        const spender = (opts.spender ?? getDefaultSpender()) as `0x${string}`
         const amount = opts.amount === 'max'
           ? BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
           : parseUnits(opts.amount, token.decimals)
@@ -116,7 +116,7 @@ function swapCommand(): Command {
             spender,
             amount: opts.amount === 'max' ? 'max' : formatUnits(amount, token.decimals),
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
@@ -144,15 +144,15 @@ function swapCommand(): Command {
     .option('--sl <name>', 'Social Login wallet name')
     .requiredOption('--token <symbol_or_address>', 'Token symbol or address')
     .option('--spender <address>', 'Spender address (default: Bulbaswap universalRouter)')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
         const { wallet } = resolveWallet(opts)
 
-        const token = await resolveErc20(opts.token, opts.hoodi)
+        const token = await resolveErc20(opts.token)
         if (!token) { out(false, { error: 'ETH has no allowance' }); process.exit(1) }
-        const spender = (opts.spender ?? getDefaultSpender(opts.hoodi)) as `0x${string}`
-        const client = getPublicClient(opts.hoodi)
+        const spender = (opts.spender ?? getDefaultSpender()) as `0x${string}`
+        const client = getPublicClient()
 
         const allowance = await client.readContract({
           address: token.address,

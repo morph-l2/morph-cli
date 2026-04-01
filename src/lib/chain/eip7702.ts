@@ -12,7 +12,7 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { decrypt, type WalletData } from '../wallet/keystore.js'
 import { decryptCredentials, signTypedDataHash, type SocialWalletConfig } from '../wallet/social-login.js'
 import { isSocialWallet } from '../wallet/resolve.js'
-import { getPublicClient, morphMainnet, morphTestnet } from '../utils/rpc.js'
+import { getPublicClient, morphMainnet } from '../utils/rpc.js'
 import { extractSigFields } from './altfee.js'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -163,8 +163,8 @@ export interface DelegateInfo {
 // ─── Delegate query ──────────────────────────────────────────────────────────
 
 /** Check if an address has 7702 delegation set */
-export async function getDelegate(address: `0x${string}`, testnet = false): Promise<DelegateInfo> {
-  const client = getPublicClient(testnet)
+export async function getDelegate(address: `0x${string}`): Promise<DelegateInfo> {
+  const client = getPublicClient()
   const code = await client.getCode({ address })
 
   if (!code || code === '0x') {
@@ -196,17 +196,16 @@ export interface SignedAuth {
 export async function signAuth(
   wallet: WalletData,
   delegate: string = DEFAULT_DELEGATE,
-  testnet = false,
 ): Promise<SignedAuth> {
   const privateKey = decrypt(wallet.privateKey) as `0x${string}`
   const account = privateKeyToAccount(privateKey)
-  const client = getPublicClient(testnet)
+  const client = getPublicClient()
 
   const nonce = await client.getTransactionCount({ address: account.address })
 
   const auth = await account.signAuthorization({
     contractAddress: delegate as `0x${string}`,
-    chainId: testnet ? morphTestnet.id : morphMainnet.id,
+    chainId: morphMainnet.id,
     nonce,
   })
 
@@ -268,7 +267,6 @@ function computeDataHash(
 
 export interface Batch7702Options {
   delegate?: string
-  testnet?: boolean
   dryRun?: boolean
 }
 
@@ -298,9 +296,8 @@ export async function batch7702(
   opts: Batch7702Options = {},
 ): Promise<Batch7702Result> {
   const delegate = opts.delegate ?? DEFAULT_DELEGATE
-  const testnet = opts.testnet ?? false
-  const chain = testnet ? morphTestnet : morphMainnet
-  const client = getPublicClient(testnet)
+  const chain = morphMainnet
+  const client = getPublicClient()
 
   const callsSummary = calls.map(c => ({
     to: c.to,
@@ -496,11 +493,10 @@ export interface Revoke7702Result {
 /** Revoke 7702 delegation by setting delegate to address(0) */
 export async function revoke7702(
   wallet: WalletData | SocialWalletConfig,
-  opts: { testnet?: boolean; dryRun?: boolean } = {},
+  opts: { dryRun?: boolean } = {},
 ): Promise<Revoke7702Result> {
-  const testnet = opts.testnet ?? false
-  const chain = testnet ? morphTestnet : morphMainnet
-  const client = getPublicClient(testnet)
+  const chain = morphMainnet
+  const client = getPublicClient()
   const ZERO_ADDR = '0x0000000000000000000000000000000000000000' as `0x${string}`
 
   if (isSocialWallet(wallet)) {

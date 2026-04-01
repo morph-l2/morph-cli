@@ -75,7 +75,11 @@ function formatKeyValue(obj: Record<string, unknown>): string {
 
 /** Format array of objects as aligned table */
 function formatTable(rows: Record<string, unknown>[]): string {
-  const keys = Object.keys(rows[0])
+  const keySet = new Set<string>()
+  for (const item of rows) {
+    for (const k of Object.keys(item)) keySet.add(k)
+  }
+  const keys = [...keySet]
   const widths = keys.map(k =>
     Math.max(k.length, ...rows.map(r => String(r[k] ?? '').length))
   )

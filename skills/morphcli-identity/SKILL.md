@@ -9,7 +9,6 @@ On-chain agent identity (NFT) and reputation via `morph-agent agentpay identity`
 
 - **Text output** by default; add `--json`
 - Write commands **broadcast by default** — add `--dry-run` to preview
-- Add `--hoodi` for Morph Hoodi testnet (chain ID 2910)
 - `-w` for private-key wallet, `--sl` for Social Login wallet
 
 ## Key Contracts
@@ -26,7 +25,7 @@ NFT: `AgentIdentity` / `AGENT`. Agent ID starts from 0. Same addresses on mainne
 ### registry — Contract info
 
 ```bash
-morph-agent agentpay identity registry [--hoodi]
+morph-agent agentpay identity registry
 ```
 
 Returns: name, symbol, version, owner.
@@ -34,7 +33,7 @@ Returns: name, symbol, version, owner.
 ### info — Agent info by ID
 
 ```bash
-morph-agent agentpay identity info --agent-id <id> [--hoodi]
+morph-agent agentpay identity info --agent-id <id>
 ```
 
 | Parameter | Required | Description |
@@ -46,7 +45,7 @@ Returns: owner address, URI, bound wallet address.
 ### balance — Agent count by address
 
 ```bash
-morph-agent agentpay identity balance -a <address> [--hoodi]
+morph-agent agentpay identity balance -a <address>
 ```
 
 | Parameter | Required | Description |
@@ -56,13 +55,13 @@ morph-agent agentpay identity balance -a <address> [--hoodi]
 ### total — Total registered agents
 
 ```bash
-morph-agent agentpay identity total [--hoodi]
+morph-agent agentpay identity total
 ```
 
 ### metadata — Read agent metadata
 
 ```bash
-morph-agent agentpay identity metadata --agent-id <id> --key <key> [--hoodi]
+morph-agent agentpay identity metadata --agent-id <id> --key <key>
 ```
 
 | Parameter | Required | Description |
@@ -73,7 +72,7 @@ morph-agent agentpay identity metadata --agent-id <id> --key <key> [--hoodi]
 ### reputation — Reputation summary
 
 ```bash
-morph-agent agentpay identity reputation --agent-id <id> [--hoodi]
+morph-agent agentpay identity reputation --agent-id <id>
 ```
 
 | Parameter | Required | Description |
@@ -85,7 +84,7 @@ Returns: feedback count, total score, unique clients.
 ### read-feedback — Single feedback entry
 
 ```bash
-morph-agent agentpay identity read-feedback --agent-id <id> --client <addr> --index <n> [--hoodi]
+morph-agent agentpay identity read-feedback --agent-id <id> --client <addr> --index <n>
 ```
 
 | Parameter | Required | Description |
@@ -97,7 +96,7 @@ morph-agent agentpay identity read-feedback --agent-id <id> --client <addr> --in
 ### reviews — All feedback for an agent
 
 ```bash
-morph-agent agentpay identity reviews --agent-id <id> [--include-revoked] [--hoodi]
+morph-agent agentpay identity reviews --agent-id <id> [--include-revoked]
 ```
 
 | Parameter | Required | Description |
@@ -110,7 +109,7 @@ morph-agent agentpay identity reviews --agent-id <id> [--include-revoked] [--hoo
 ### register — Register new agent (mint NFT)
 
 ```bash
-morph-agent agentpay identity register [-w <wallet>] [--uri <url>] [--dry-run] [--hoodi]
+morph-agent agentpay identity register [-w <wallet>] [--uri <url>] [--dry-run]
 ```
 
 | Parameter | Required | Description |
@@ -121,7 +120,7 @@ morph-agent agentpay identity register [-w <wallet>] [--uri <url>] [--dry-run] [
 ### set-metadata — Set metadata key-value
 
 ```bash
-morph-agent agentpay identity set-metadata [-w <wallet>] --agent-id <id> --key <key> --value <value> [--dry-run] [--hoodi]
+morph-agent agentpay identity set-metadata [-w <wallet>] --agent-id <id> --key <key> --value <value> [--dry-run]
 ```
 
 | Parameter | Required | Description |
@@ -133,7 +132,7 @@ morph-agent agentpay identity set-metadata [-w <wallet>] --agent-id <id> --key <
 ### set-uri — Set agent URI
 
 ```bash
-morph-agent agentpay identity set-uri [-w <wallet>] --agent-id <id> --uri <uri> [--dry-run] [--hoodi]
+morph-agent agentpay identity set-uri [-w <wallet>] --agent-id <id> --uri <uri> [--dry-run]
 ```
 
 | Parameter | Required | Description |
@@ -144,7 +143,7 @@ morph-agent agentpay identity set-uri [-w <wallet>] --agent-id <id> --uri <uri> 
 ### set-wallet — Bind operational wallet
 
 ```bash
-morph-agent agentpay identity set-wallet [-w <wallet>] --agent-id <id> --new-wallet <addr> --signature <hex> [--deadline <ts>] [--dry-run] [--hoodi]
+morph-agent agentpay identity set-wallet [-w <wallet>] --agent-id <id> --new-wallet <addr> --signature <hex> [--deadline <ts>] [--dry-run]
 ```
 
 | Parameter | Required | Description |
@@ -157,7 +156,7 @@ morph-agent agentpay identity set-wallet [-w <wallet>] --agent-id <id> --new-wal
 ### unset-wallet — Unbind operational wallet
 
 ```bash
-morph-agent agentpay identity unset-wallet [-w <wallet>] --agent-id <id> [--dry-run] [--hoodi]
+morph-agent agentpay identity unset-wallet [-w <wallet>] --agent-id <id> [--dry-run]
 ```
 
 | Parameter | Required | Description |
@@ -169,7 +168,7 @@ morph-agent agentpay identity unset-wallet [-w <wallet>] --agent-id <id> [--dry-
 ### feedback — Submit feedback
 
 ```bash
-morph-agent agentpay identity feedback [-w <wallet>] --agent-id <id> --value <n> [--tag1 <tag>] [--tag2 <tag>] [--endpoint <url>] [--feedback-uri <uri>] [--dry-run] [--hoodi]
+morph-agent agentpay identity feedback [-w <wallet>] --agent-id <id> --value <n> [--tag1 <tag>] [--tag2 <tag>] [--endpoint <url>] [--feedback-uri <uri>] [--dry-run]
 ```
 
 | Parameter | Required | Description |
@@ -184,7 +183,7 @@ morph-agent agentpay identity feedback [-w <wallet>] --agent-id <id> --value <n>
 ### revoke-feedback — Revoke your own feedback
 
 ```bash
-morph-agent agentpay identity revoke-feedback [-w <wallet>] --agent-id <id> --index <n> [--dry-run] [--hoodi]
+morph-agent agentpay identity revoke-feedback [-w <wallet>] --agent-id <id> --index <n> [--dry-run]
 ```
 
 | Parameter | Required | Description |
@@ -195,7 +194,7 @@ morph-agent agentpay identity revoke-feedback [-w <wallet>] --agent-id <id> --in
 ### append-response — Respond to feedback
 
 ```bash
-morph-agent agentpay identity append-response [-w <wallet>] --agent-id <id> --client <addr> --index <n> --response-uri <uri> [--dry-run] [--hoodi]
+morph-agent agentpay identity append-response [-w <wallet>] --agent-id <id> --client <addr> --index <n> --response-uri <uri> [--dry-run]
 ```
 
 | Parameter | Required | Description |

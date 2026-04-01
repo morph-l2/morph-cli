@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
   MORPH_MAINNET,
-  MORPH_TESTNET,
   MORPH_TOKENS,
   ALT_FEE_TOKENS,
 } from '../../src/lib/utils/config.js'
@@ -15,15 +14,6 @@ describe('MORPH_MAINNET', () => {
   })
   it('explorer URL uses morph.network', () => {
     expect(MORPH_MAINNET.explorer).toContain('morph.network')
-  })
-})
-
-describe('MORPH_TESTNET', () => {
-  it('chain ID is 2910', () => {
-    expect(MORPH_TESTNET.chainId).toBe(2910)
-  })
-  it('RPC URL contains hoodi', () => {
-    expect(MORPH_TESTNET.rpc).toContain('hoodi')
   })
 })
 

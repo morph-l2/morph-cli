@@ -13,7 +13,6 @@ Local key management and on-chain operations via `morph-agent wallet`.
 - **Text output** by default; add `--json` for structured JSON (recommended for AI agents)
 - Transfers **broadcast by default** — add `--dry-run` to preview first
 - Amounts use human-readable units (`0.1` = 0.1 ETH, not wei)
-- Add `--hoodi` to switch to Morph Hoodi testnet (chain ID 2910)
 
 ## Dual Wallet System
 
@@ -100,9 +99,6 @@ morph-agent wallet transfer --to 0x<addr> --amount 0.1 --altfee 4
 
 # Send via EIP-7702 delegation (tx type 0x04)
 morph-agent wallet transfer --to 0x<addr> --amount 0.1 --eip7702
-
-# Testnet
-morph-agent wallet transfer --to 0x<addr> --amount 1 --hoodi
 ```
 
 ### Transaction Mode Options (all write commands)

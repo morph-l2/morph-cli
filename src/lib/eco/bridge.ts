@@ -10,13 +10,12 @@ import { BULBASWAP } from '../utils/config.js'
 import { decrypt, type WalletData } from '../wallet/keystore.js'
 import { decryptCredentials, signMessage as slSignMessage, signTransaction as slSignTransaction, type SocialWalletConfig } from '../wallet/social-login.js'
 import { isSocialWallet } from '../wallet/resolve.js'
-import { parseEther } from 'viem'
+import { parseEther, formatEther } from 'viem'
 
 /** Map chain ID to BGW TEE chain name */
 function chainIdToBgw(chainId: number): string {
   const MAP: Record<number, string> = {
     2818: 'evm_custom#morph',
-    2910: 'evm_custom#morph',
     1:    'eth',
     56:   'evm_custom#bnb',
     8453: 'evm_custom#base',
@@ -250,7 +249,7 @@ export async function bridgeLogin(wallet: WalletData | SocialWalletConfig): Prom
 
   if (isSocialWallet(wallet)) {
     const creds = decryptCredentials(wallet)
-    address = wallet.address
+    address = wallet.address ?? ''
     signature = await slSignMessage(creds, 'evm_custom#morph', message)
   } else {
     const privateKey = decrypt(wallet.privateKey) as `0x${string}`
@@ -299,17 +298,17 @@ export async function signBridgeTxs(wallet: WalletData | SocialWalletConfig, txs
       const d = txInfo.data
       const chainId = Number(txInfo.chainId)
       const chain = chainIdToBgw(chainId)
-      let value: number
-      try { value = Number(parseEther(String(d.value))) / 1e18 } catch { value = 0 }
+      let valueStr: string
+      try { valueStr = formatEther(parseEther(String(d.value))) } catch { valueStr = '0' }
       const signedTx = await slSignTransaction(creds, {
         chain,
         chainId,
         to: d.to,
-        value,
+        value: valueStr,
         data: (d.calldata || '0x'),
         nonce: Number(d.nonce),
         gasLimit: String(d.gasLimit),
-        gasPrice: String(Number(d.gasPrice) / 1e18),
+        gasPrice: formatEther(BigInt(d.gasPrice)),
       })
       signed.push(signedTx)
     }
@@ -379,7 +378,7 @@ export async function bridgeSwap(
   txCount: number
   status: string
 }> {
-  const toAddress = params.toAddress ?? wallet.address
+  const toAddress = params.toAddress ?? wallet.address ?? ''
 
   const body: Record<string, string> = {
     fromChain: params.fromChain,

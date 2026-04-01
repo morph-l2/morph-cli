@@ -81,7 +81,6 @@ All write commands (wallet transfer, eco swap/approve, agentpay identity write o
 | `--altfee <id>` | Pay gas with ERC-20 (tx type 0x7f). IDs: 4=BGB, 5=USDT, 6=USDC |
 | `--eip7702` | Send via EIP-7702 SimpleDelegation (tx type 0x04) |
 | `--dry-run` | Preview without sending (default is broadcast) |
-| `--hoodi` | Switch to Morph Hoodi testnet (chain ID 2910) |
 
 Both `-w` (private-key) and `--sl` (Social Login) wallets support all three tx modes.
 

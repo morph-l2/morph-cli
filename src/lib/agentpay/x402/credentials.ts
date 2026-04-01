@@ -8,7 +8,7 @@
 import { existsSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { encrypt, decrypt } from '../../wallet/keystore.js'
-import { X402_CREDENTIALS_DIR, ensureDirs } from '../../utils/config.js'
+import { X402_CREDENTIALS_DIR, ensureDirs, safeName } from '../../utils/config.js'
 
 interface EncryptedData {
   nonce: string
@@ -41,12 +41,12 @@ export function saveCredentials(name: string, address: string, accessKey: string
     secretKey: encrypt(secretKey),
     createdAt: new Date().toISOString(),
   }
-  writeFileSync(join(X402_CREDENTIALS_DIR, `${name}.json`), JSON.stringify(data, null, 2), { mode: 0o600 })
+  writeFileSync(join(X402_CREDENTIALS_DIR, `${safeName(name)}.json`), JSON.stringify(data, null, 2), { mode: 0o600 })
 }
 
 /** Load merchant credentials by wallet name (decrypt Secret Key) */
 export function loadCredentials(name: string): MerchantCredentials | null {
-  const filePath = join(X402_CREDENTIALS_DIR, `${name}.json`)
+  const filePath = join(X402_CREDENTIALS_DIR, `${safeName(name)}.json`)
   if (!existsSync(filePath)) return null
   const data: StoredCredentials = JSON.parse(readFileSync(filePath, 'utf8'))
   return {
@@ -70,12 +70,12 @@ export function listCredentials(): Array<{ name: string; address: string; access
 
 /** Check if credentials exist for a wallet name */
 export function hasCredentials(name: string): boolean {
-  return existsSync(join(X402_CREDENTIALS_DIR, `${name}.json`))
+  return existsSync(join(X402_CREDENTIALS_DIR, `${safeName(name)}.json`))
 }
 
 /** Remove credentials by wallet name */
 export function removeCredentials(name: string): boolean {
-  const filePath = join(X402_CREDENTIALS_DIR, `${name}.json`)
+  const filePath = join(X402_CREDENTIALS_DIR, `${safeName(name)}.json`)
   if (!existsSync(filePath)) return false
   unlinkSync(filePath)
   return true

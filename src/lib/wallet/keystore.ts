@@ -1,6 +1,6 @@
 import { randomBytes, createCipheriv, createDecipheriv } from 'crypto'
 import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from 'fs'
-import { ENCRYPTION_KEY_PATH, WALLETS_DIR, CONFIG_PATH, ensureDirs } from '../utils/config.js'
+import { ENCRYPTION_KEY_PATH, WALLETS_DIR, CONFIG_PATH, ensureDirs, safeName } from '../utils/config.js'
 import { join } from 'path'
 
 const ALGORITHM = 'aes-256-gcm'
@@ -70,13 +70,13 @@ export function decrypt(data: EncryptedData): string {
 /** Save wallet to ~/.morph-agent/wallets/{name}.json */
 export function saveWallet(wallet: WalletData): void {
   ensureDirs()
-  const filePath = join(WALLETS_DIR, `${wallet.name}.json`)
+  const filePath = join(WALLETS_DIR, `${safeName(wallet.name)}.json`)
   writeFileSync(filePath, JSON.stringify(wallet, null, 2), { mode: 0o600 })
 }
 
 /** Load wallet by name */
 export function loadWallet(name: string): WalletData | null {
-  const filePath = join(WALLETS_DIR, `${name}.json`)
+  const filePath = join(WALLETS_DIR, `${safeName(name)}.json`)
   if (!existsSync(filePath)) return null
   return JSON.parse(readFileSync(filePath, 'utf8'))
 }
@@ -92,7 +92,7 @@ export function listWallets(): WalletData[] {
 
 /** Remove wallet by name. Clears default if removing the default wallet. */
 export function removeWallet(name: string): boolean {
-  const filePath = join(WALLETS_DIR, `${name}.json`)
+  const filePath = join(WALLETS_DIR, `${safeName(name)}.json`)
   if (!existsSync(filePath)) return false
   unlinkSync(filePath)
   // Clear default if we just removed the default wallet

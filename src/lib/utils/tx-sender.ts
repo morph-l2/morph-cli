@@ -11,7 +11,7 @@ import { createSigner } from './signer.js'
 import { getPublicClient } from './rpc.js'
 import { signAltFeeTx, hashAltFeeTx, finalizeAltFeeTxWithSig } from '../chain/altfee.js'
 import { send7702 } from '../chain/eip7702.js'
-import { MORPH_MAINNET, MORPH_TESTNET } from './config.js'
+import { MORPH_MAINNET } from './config.js'
 import type { SocialWalletConfig } from '../wallet/social-login.js'
 import { decryptCredentials, signTransaction as slSignTransaction, signTypedDataHash } from '../wallet/social-login.js'
 
@@ -24,7 +24,6 @@ export interface TxParams {
 }
 
 export interface TxOptions {
-  hoodi?: boolean
   altfee?: number     // fee token ID → tx type 0x7f
   eip7702?: boolean   // → tx type 0x04 via SimpleDelegation
 }
@@ -60,9 +59,8 @@ export async function sendTx(
 
   // ── Alt-fee (tx type 0x7f) ──────────────────────────────────────────────
   if (options.altfee !== undefined) {
-    const hoodi = options.hoodi ?? false
-    const client = getPublicClient(hoodi)
-    const chainId = hoodi ? MORPH_TESTNET.chainId : MORPH_MAINNET.chainId
+    const client = getPublicClient()
+    const chainId = MORPH_MAINNET.chainId
     const privateKey = decrypt(pkWallet.privateKey) as `0x${string}`
 
     const [nonce, gasPrice] = await Promise.all([
@@ -102,7 +100,6 @@ export async function sendTx(
   if (options.eip7702) {
     const result = await send7702(pkWallet, {
       to, value, data,
-      testnet: options.hoodi,
     })
     if (!result.hash) {
       throw new Error('EIP-7702 transaction failed: no hash returned')
@@ -111,7 +108,7 @@ export async function sendTx(
   }
 
   // ── Standard (EIP-1559, type 0x02) ──────────────────────────────────────
-  const walletClient = createSigner(pkWallet, options.hoodi)
+  const walletClient = createSigner(pkWallet)
   const hash = await walletClient.sendTransaction({ to, data, value })
   return { hash, txType: '0x02' }
 }
@@ -131,16 +128,14 @@ async function sendTxViaSocialLogin(
       to: params.to,
       value: params.value,
       data: params.data,
-      testnet: options.hoodi,
     })
     if (!result.hash) throw new Error('EIP-7702 SL transaction failed: no hash returned')
     return { hash: result.hash, txType: '0x04' }
   }
 
   const creds = decryptCredentials(wallet)
-  const hoodi = options.hoodi ?? false
-  const client = getPublicClient(hoodi)
-  const chainId = hoodi ? MORPH_TESTNET.chainId : MORPH_MAINNET.chainId
+  const client = getPublicClient()
+  const chainId = MORPH_MAINNET.chainId
   const address = wallet.address as `0x${string}`
 
   const [nonce, gasPrice] = await Promise.all([
@@ -190,7 +185,7 @@ async function sendTxViaSocialLogin(
     chain: `evm_custom#morph`,
     chainId,
     to: params.to,
-    value: Number(formatEther(params.value ?? 0n)),
+    value: formatEther(params.value ?? 0n),
     data: params.data ?? '0x',
     nonce,
     gasLimit: String(gasLimit),
@@ -214,10 +209,12 @@ export function addTxModeOptions(cmd: Command): Command {
     .option('--eip7702', 'Send via EIP-7702 delegation (tx type 0x04)')
 }
 
-/** Extract TxOptions from parsed commander opts */
+/** Extract TxOptions from parsed commander opts. Throws if --altfee and --eip7702 are both set. */
 export function parseTxModeOptions(opts: Record<string, unknown>): TxOptions {
+  if (opts.altfee && opts.eip7702) {
+    throw new Error('--altfee and --eip7702 are mutually exclusive. Use one at a time.')
+  }
   return {
-    hoodi: opts.hoodi as boolean | undefined,
     altfee: opts.altfee ? Number(opts.altfee) : undefined,
     eip7702: opts.eip7702 as boolean | undefined,
   }

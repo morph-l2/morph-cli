@@ -150,6 +150,14 @@ export const MORPH_TESTNET_TOKENS: Record<string, { address: `0x${string}`; deci
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
+/** Validate wallet/credential name to prevent path traversal (e.g. ../../etc/passwd) */
+export function safeName(name: string): string {
+  if (!name || /[/\\]/.test(name) || name === '.' || name === '..') {
+    throw new Error(`Invalid name "${name}": must not contain path separators or be "." / ".."`)
+  }
+  return name
+}
+
 /** Ensure ~/.morph-agent/ and subdirectories exist */
 export function ensureDirs(): void {
   for (const dir of [MORPH_DIR, WALLETS_DIR, SOCIAL_WALLETS_DIR, X402_CREDENTIALS_DIR]) {

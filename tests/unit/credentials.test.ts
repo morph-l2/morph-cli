@@ -24,6 +24,12 @@ vi.mock('../../src/lib/utils/config.js', async () => {
       if (!ex(dir)) mk(dir, { recursive: true, mode: 0o700 })
       if (!ex(credsDir)) mk(credsDir, { recursive: true, mode: 0o700 })
     },
+    safeName: (name: string) => {
+      if (!name || /[/\\]/.test(name) || name === '.' || name === '..') {
+        throw new Error(`Invalid name "${name}"`)
+      }
+      return name
+    },
   }
 })
 

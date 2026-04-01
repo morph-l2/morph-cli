@@ -4,7 +4,7 @@
  * Token resolution helpers + quote/swap API wrappers
  */
 import { formatUnits, parseUnits, type PublicClient } from 'viem'
-import { MORPH_TOKENS, BULBASWAP, BULBASWAP_TESTNET } from '../utils/config.js'
+import { MORPH_TOKENS, BULBASWAP } from '../utils/config.js'
 import { httpGet } from '../utils/http.js'
 import { ERC20_ABI } from '../../contracts/erc20.js'
 
@@ -35,11 +35,10 @@ export interface QuoteParams {
   slippage: string
   deadline: string
   recipient?: string
-  hoodi?: boolean
 }
 
 export async function getSwapQuote(params: QuoteParams): Promise<Record<string, unknown>> {
-  const apiBase = params.hoodi ? 'https://api-testnet.bulbaswap.io' : BULBASWAP.apiBase
+  const apiBase = BULBASWAP.apiBase
   const queryParams: Record<string, string> = {
     tokenInAddress: params.tokenIn,
     tokenOutAddress: params.tokenOut,
@@ -74,10 +73,9 @@ export async function getAllowance(
   }) as Promise<bigint>
 }
 
-/** Get the default router/spender address for the given network */
-export function getDefaultSpender(hoodi?: boolean): `0x${string}` {
-  const dex = hoodi ? BULBASWAP_TESTNET : BULBASWAP
-  return dex.universalRouter as `0x${string}`
+/** Get the default router/spender address */
+export function getDefaultSpender(): `0x${string}` {
+  return BULBASWAP.universalRouter as `0x${string}`
 }
 
 export { ERC20_ABI }

@@ -44,6 +44,10 @@ export function walletCommand(): Command {
         out(false, { error: `Wallet "${opts.name}" already exists` })
         process.exit(1)
       }
+      if (loadSocialWallet(opts.name)) {
+        out(false, { error: `Social Login wallet "${opts.name}" already exists. Choose a different name.` })
+        process.exit(1)
+      }
       const privateKey = generatePrivateKey()
       const account = privateKeyToAccount(privateKey)
       saveWallet({
@@ -68,6 +72,7 @@ export function walletCommand(): Command {
     .option('-k, --private-key <key>', 'Private key (0x...)')
     .option('-f, --private-key-file <path>', 'Path to file containing private key')
     .action((opts) => {
+      try {
       let privateKey: `0x${string}`
       if (opts.privateKey) {
         privateKey = opts.privateKey.startsWith('0x')
@@ -84,6 +89,14 @@ export function walletCommand(): Command {
         out(false, { error: 'Provide --private-key <key> or --private-key-file <path>' })
         process.exit(1)
       }
+      if (loadWallet(opts.name)) {
+        out(false, { error: `Wallet "${opts.name}" already exists. Use a different name or remove it first.` })
+        process.exit(1)
+      }
+      if (loadSocialWallet(opts.name)) {
+        out(false, { error: `Social Login wallet "${opts.name}" already exists. Choose a different name.` })
+        process.exit(1)
+      }
       const account = privateKeyToAccount(privateKey)
       saveWallet({
         name: opts.name,
@@ -96,6 +109,7 @@ export function walletCommand(): Command {
         setDefaultWalletName(opts.name)
       }
       out(true, { name: opts.name, address: account.address, isDefault })
+      } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
 
   // wallet list
@@ -179,7 +193,7 @@ export function walletCommand(): Command {
     .option('--sl <name>', 'Social Login wallet name')
     .option('--address <address>', 'Query any address directly (no wallet needed)')
     .option('--token <symbol_or_address>', 'Specific token symbol or contract address')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
       assertExclusiveWallet(opts)
@@ -217,12 +231,12 @@ export function walletCommand(): Command {
         walletType = 'private-key'
       }
 
-      const client = getPublicClient(opts.hoodi)
+      const client = getPublicClient()
 
       // query single token (or ETH)
       if (opts.token) {
         let token: Awaited<ReturnType<typeof resolveToken>>
-        try { token = await resolveToken(opts.token, opts.hoodi) } catch (e: unknown) {
+        try { token = await resolveToken(opts.token) } catch (e: unknown) {
           out(false, { error: (e as Error).message }); process.exit(1)
         }
         if (token === null) {
@@ -294,14 +308,15 @@ export function walletCommand(): Command {
       .requiredOption('--amount <value>', 'Amount (human readable, e.g. 0.1 ETH or 10 BGB)')
       .option('--token <symbol_or_address>', 'Token symbol or contract address. Omit to send ETH.')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(transferCmd)
     transferCmd.action(async (opts) => {
+      try {
       const { wallet, address: walletAddress, type: walletType } = resolveWallet(opts)
       // Resolve token: null = ETH, object = ERC-20
       let tokenInfo: Awaited<ReturnType<typeof resolveToken>> = null
       if (opts.token) {
-        try { tokenInfo = await resolveToken(opts.token, opts.hoodi) } catch (e: unknown) {
+        try { tokenInfo = await resolveToken(opts.token) } catch (e: unknown) {
           out(false, { error: (e as Error).message }); process.exit(1)
         }
       }
@@ -318,7 +333,7 @@ export function walletCommand(): Command {
           token: isETH ? 'ETH' : tokenInfo!.symbol,
           walletType,
           txMode: txModeLabel(txMode),
-          note: 'Add --dry-run to preview without sending',
+          note: 'Remove --dry-run to broadcast the transaction',
         })
         return
       }
@@ -347,6 +362,7 @@ export function walletCommand(): Command {
         token: token.symbol,
         contractAddress: token.address,
       })
+      } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
   }
 
@@ -365,10 +381,8 @@ export function walletCommand(): Command {
         out(false, { error: `Private-key wallet "${opts.name}" already exists. Choose a different name.` })
         process.exit(1)
       }
-      if (loadSocialWallet(opts.name)) {
-        out(false, { error: `Social Login wallet "${opts.name}" already exists` })
-        process.exit(1)
-      }
+      const existing = loadSocialWallet(opts.name)
+      const isRebind = !!existing
 
       const creds = { appid: opts.appid, appsecret: opts.appsecret }
 
@@ -402,7 +416,7 @@ export function walletCommand(): Command {
         createdAt: new Date().toISOString(),
       })
 
-      out(true, { name: opts.name, type: 'social-login', address, walletId })
+      out(true, { name: opts.name, type: 'social-login', address, walletId, ...(isRebind ? { note: 'Re-bound: existing Social Login wallet replaced' } : {}) })
     })
 
   // wallet sl-list — list all social login wallets

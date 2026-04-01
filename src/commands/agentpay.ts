@@ -121,7 +121,7 @@ function x402Command(): Command {
 
   cmd
     .command('pay')
-    .description('Pay a 402-gated resource: probe → sign EIP-3009 → get resource. Dry-run by default.')
+    .description('Pay a 402-gated resource: probe → sign EIP-3009 → get resource. Broadcasts by default.')
     .option('-w, --wallet <name>', 'Private-key wallet name (default: default wallet)')
     .option('--sl <name>', 'Social Login wallet name')
     .requiredOption('--url <url>', 'Target URL')
@@ -153,7 +153,7 @@ function x402Command(): Command {
             dryRun: true, url: opts.url, from: address, payTo: req.payTo,
             amount: amountHuman + ' USDC', amountRaw: amount, network: req.network,
             scheme: req.scheme, maxPayment: opts.maxPayment + ' USDC',
-            note: 'Add --dry-run to preview without signing',
+            note: 'Remove --dry-run to sign and pay',
           })
           return
         }
@@ -408,10 +408,10 @@ function identityCommand(): Command {
   cmd
     .command('registry')
     .description('Show registry contract info (name, symbol, version, owner)')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
-        const info = await getRegistryInfo(opts.hoodi)
+        const info = await getRegistryInfo()
         out(true, info)
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
@@ -420,10 +420,10 @@ function identityCommand(): Command {
     .command('info')
     .description('Get agent info by ID (owner, URI, wallet)')
     .requiredOption('--agent-id <id>', 'Agent ID (uint256)')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
-        const info = await getAgentInfo(parseInt(opts.agentId), opts.hoodi)
+        const info = await getAgentInfo(parseInt(opts.agentId))
         out(true, info)
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
@@ -432,10 +432,10 @@ function identityCommand(): Command {
     .command('balance')
     .description('Get number of agents owned by an address')
     .requiredOption('-a, --address <address>', 'Owner address')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
-        const count = await getAgentBalance(opts.address, opts.hoodi)
+        const count = await getAgentBalance(opts.address)
         out(true, { address: opts.address, agentCount: count })
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
@@ -445,10 +445,10 @@ function identityCommand(): Command {
     .description('Read agent metadata by key')
     .requiredOption('--agent-id <id>', 'Agent ID')
     .requiredOption('--key <key>', 'Metadata key (e.g. "name", "description", "endpoint")')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
-        const value = await getAgentMetadata(parseInt(opts.agentId), opts.key, opts.hoodi)
+        const value = await getAgentMetadata(parseInt(opts.agentId), opts.key)
         out(true, { agentId: opts.agentId, key: opts.key, value })
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
@@ -457,10 +457,10 @@ function identityCommand(): Command {
     .command('reputation')
     .description('Get agent reputation summary (feedback count, score, clients)')
     .requiredOption('--agent-id <id>', 'Agent ID')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
-        const rep = await getReputationSummary(parseInt(opts.agentId), opts.hoodi)
+        const rep = await getReputationSummary(parseInt(opts.agentId))
         out(true, rep)
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
@@ -468,12 +468,12 @@ function identityCommand(): Command {
   {
     const registerCmd = cmd
       .command('register')
-      .description('Register a new agent on IdentityRegistry. Dry-run by default.')
+      .description('Register a new agent on IdentityRegistry. Broadcasts by default.')
       .option('-w, --wallet <name>', 'Private-key wallet name (default: default wallet)')
       .option('--sl <name>', 'Social Login wallet name')
       .option('--uri <uri>', 'Agent URI (metadata URL)')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(registerCmd)
     registerCmd.action(async (opts) => {
       try {
@@ -487,7 +487,7 @@ function identityCommand(): Command {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             uri: opts.uri ?? '(none)', calldataLength: calldata.length,
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
@@ -508,10 +508,10 @@ function identityCommand(): Command {
   cmd
     .command('total')
     .description('Get total number of registered agents')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
-        const total = await getTotalAgents(opts.hoodi)
+        const total = await getTotalAgents()
         out(true, { totalAgents: total })
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
@@ -521,14 +521,14 @@ function identityCommand(): Command {
   {
     const setMetaCmd = cmd
       .command('set-metadata')
-      .description('Set agent metadata key-value pair. Dry-run by default.')
+      .description('Set agent metadata key-value pair. Broadcasts by default.')
       .option('-w, --wallet <name>', 'Private-key wallet name (default: default wallet)')
       .option('--sl <name>', 'Social Login wallet name')
       .requiredOption('--agent-id <id>', 'Agent ID')
       .requiredOption('--key <key>', 'Metadata key (e.g. "name", "description", "endpoint")')
       .requiredOption('--value <value>', 'Metadata value')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(setMetaCmd)
     setMetaCmd.action(async (opts) => {
       try {
@@ -542,7 +542,7 @@ function identityCommand(): Command {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             agentId: opts.agentId, key: opts.key, value: opts.value,
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
@@ -564,7 +564,7 @@ function identityCommand(): Command {
       .requiredOption('--agent-id <id>', 'Agent ID')
       .requiredOption('--uri <uri>', 'New agent URI')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(setUriCmd)
     setUriCmd.action(async (opts) => {
       try {
@@ -578,7 +578,7 @@ function identityCommand(): Command {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             agentId: opts.agentId, uri: opts.uri,
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
@@ -602,7 +602,7 @@ function identityCommand(): Command {
       .requiredOption('--signature <hex>', 'EIP-712 signature from newWallet (0x...)')
       .option('--deadline <timestamp>', 'Signature deadline (unix timestamp)', String(Math.floor(Date.now() / 1000) + 3600))
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(setWalletCmd)
     setWalletCmd.action(async (opts) => {
       try {
@@ -617,7 +617,7 @@ function identityCommand(): Command {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             agentId: opts.agentId, newWallet: opts.newWallet, deadline: opts.deadline,
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
@@ -638,7 +638,7 @@ function identityCommand(): Command {
       .option('--sl <name>', 'Social Login wallet name (agent owner)')
       .requiredOption('--agent-id <id>', 'Agent ID')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(unsetWalletCmd)
     unsetWalletCmd.action(async (opts) => {
       try {
@@ -652,7 +652,7 @@ function identityCommand(): Command {
             dryRun: true, from: address, to: IDENTITY_REGISTRY,
             agentId: opts.agentId, action: 'unset wallet',
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
@@ -678,7 +678,7 @@ function identityCommand(): Command {
       .option('--endpoint <url>', 'Endpoint being rated', '')
       .option('--feedback-uri <uri>', 'Off-chain feedback URI', '')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(feedbackCmd)
     feedbackCmd.action(async (opts) => {
       try {
@@ -695,7 +695,7 @@ function identityCommand(): Command {
             dryRun: true, from: address, to: REPUTATION_REGISTRY,
             agentId: opts.agentId, value: opts.value, tag1: opts.tag1, tag2: opts.tag2,
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
@@ -714,10 +714,10 @@ function identityCommand(): Command {
     .requiredOption('--agent-id <id>', 'Agent ID')
     .requiredOption('--client <address>', 'Client address who gave feedback')
     .requiredOption('--index <n>', 'Feedback index')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
-        const fb = await readFeedback(parseInt(opts.agentId), opts.client, parseInt(opts.index), opts.hoodi)
+        const fb = await readFeedback(parseInt(opts.agentId), opts.client, parseInt(opts.index))
         out(true, { agentId: opts.agentId, client: opts.client, index: opts.index, ...fb })
       } catch (e) { out(false, { error: (e as Error).message }); process.exit(1) }
     })
@@ -729,10 +729,10 @@ function identityCommand(): Command {
     .description('Read all feedback for an agent')
     .requiredOption('--agent-id <id>', 'Agent ID')
     .option('--include-revoked', 'Include revoked feedback')
-    .option('--hoodi', 'Use Morph Hoodi testnet')
+    
     .action(async (opts) => {
       try {
-        const feedbacks = await readAllFeedback(parseInt(opts.agentId), opts.hoodi, opts.includeRevoked)
+        const feedbacks = await readAllFeedback(parseInt(opts.agentId), opts.includeRevoked)
         if (feedbacks.length === 0) {
           out(true, { agentId: opts.agentId, feedbackCount: 0, note: 'No feedback found' })
           return
@@ -752,7 +752,7 @@ function identityCommand(): Command {
       .requiredOption('--agent-id <id>', 'Agent ID')
       .requiredOption('--index <n>', 'Feedback index to revoke')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(revokeCmd)
     revokeCmd.action(async (opts) => {
       try {
@@ -766,7 +766,7 @@ function identityCommand(): Command {
             dryRun: true, from: address, to: REPUTATION_REGISTRY,
             agentId: opts.agentId, feedbackIndex: opts.index,
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
@@ -790,7 +790,7 @@ function identityCommand(): Command {
       .requiredOption('--index <n>', 'Feedback index')
       .requiredOption('--response-uri <uri>', 'Response URI')
       .option('--dry-run', 'Preview transaction without sending')
-      .option('--hoodi', 'Use Morph Hoodi testnet')
+      
     addTxModeOptions(appendCmd)
     appendCmd.action(async (opts) => {
       try {
@@ -807,7 +807,7 @@ function identityCommand(): Command {
             agentId: opts.agentId, client: opts.client, feedbackIndex: opts.index,
             responseUri: opts.responseUri,
             txMode: txModeLabel(txMode),
-            note: 'Add --dry-run to preview without sending',
+            note: 'Remove --dry-run to broadcast the transaction',
           })
           return
         }
